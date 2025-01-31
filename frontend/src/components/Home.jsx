@@ -2,38 +2,46 @@ import { Link } from "react-router-dom";
 
 const Home = () => {
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-900">
-      {/* Header */}
-      <header className="bg-white shadow-md py-4 px-6 flex justify-between items-center">
+    <div className="min-h-screen bg-gray-100">
+      {/* Navbar */}
+      <header className="flex items-center justify-between px-6 py-4 bg-white shadow-md">
         <div className="text-2xl font-bold text-blue-600">
           AI Financial Advisor
         </div>
-        <nav className="flex gap-6">
-          <a href="#about" className="hover:text-blue-500">
+        <nav className="flex items-center space-x-6">
+          <a href="#about" className="text-gray-600 hover:text-blue-500">
             About
           </a>
-          <a href="#features" className="hover:text-blue-500">
+          <a href="#features" className="text-gray-600 hover:text-blue-500">
             Features
           </a>
-          <a href="#contact" className="hover:text-blue-500">
+          <a href="#contact" className="text-gray-600 hover:text-blue-500">
             Contact
           </a>
           <Link
             to="/login"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition"
           >
             Login
+          </Link>
+          <Link
+            to="/signup"
+            className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 transition"
+          >
+            Sign Up
           </Link>
         </nav>
       </header>
 
       {/* Hero Section */}
-      <section className="text-center py-20 bg-blue-50">
-        <h1 className="text-4xl font-bold">Empower Your Financial Journey</h1>
-        <p className="mt-4 text-lg text-gray-700">
+      <section className="text-center py-20">
+        <h1 className="text-4xl font-bold text-gray-800">
+          Empower Your Financial Journey
+        </h1>
+        <p className="mt-4 text-gray-600">
           Personalized financial planning with AI and machine learning
         </p>
-        <button className="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg text-lg hover:bg-blue-700">
+        <button className="mt-6 px-6 py-3 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition">
           Get Started
         </button>
       </section>
