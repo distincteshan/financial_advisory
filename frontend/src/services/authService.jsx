@@ -9,7 +9,20 @@ export const signup = async (userData) => {
 };
 
 export const login = async (userData) => {
-  return await axios.post(`${API_URL}/login`, userData, {
-    headers: { "Content-Type": "application/json" },
-  });
+  try {
+    console.log("Sending login request with data:", userData);
+    const response = await axios.post(`${API_URL}/login`, userData, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    console.log("Login response:", response);
+    return response;
+  } catch (error) {
+    console.error(
+      "Login request failed:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
 };

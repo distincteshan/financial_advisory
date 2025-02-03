@@ -36,6 +36,7 @@ const Login = () => {
       // Redirect to questionnaire or dashboard
       navigate("/questionnaire");
     } catch (err) {
+      console.error("Login error details:", err);
       setError(err.response?.data?.message || "An error occurred during login");
     } finally {
       setLoading(false);
