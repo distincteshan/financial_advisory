@@ -17,13 +17,13 @@ const Navbar = () => {
         {/* desktop nav-items */}
         <div className="hidden md:flex items-center space-x-6">
           {navlinks.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
+            <Link
+              to="/"
               className="text-gray-700 hover:text-blue-500 transition-colors duration-300 font-medium mx-4"
+              key={link.label}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
         {/* Login / Signup */}

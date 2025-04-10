@@ -17,7 +17,10 @@ def signup():
         "first_name": data["first_name"],
         "last_name": data["last_name"],
         "username": data["username"],
-        "password": hashed_pw
+        "password": hashed_pw,
+        "risk_score": None,
+        "has_completed_questionnaire": False,
+        "risk_category": None
     }
     users_collection.insert_one(user)
 
@@ -43,11 +46,14 @@ def login():
                 'username': user['username'],
                 'exp': datetime.utcnow() + timedelta(hours=24)
             }, SECRET_KEY)
+
+            has_completed = user.get('has_completed_questionnaire', False)
             
             return jsonify({
                 "message": "Login successful",
                 "token": token,
-                "user_id": str(user['_id'])
+                "user_id": str(user['_id']),
+                "has_completed_questionnaire": has_completed
             }), 200
         
         return jsonify({"message": "Invalid credentials"}), 401

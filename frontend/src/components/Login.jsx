@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { login } from "../services/authService";
 import { useNavigate } from "react-router-dom";
+import Navbar from "./NavBar";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -30,11 +31,15 @@ const Login = () => {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user_id", response.data.user_id);
 
+      // Redirect based on questionnaire completion status
+      if (response.data.has_completed_questionnaire) {
+        navigate("/dashboard");
+      } else {
+        navigate("/questionnaire");
+      }
+
       // Show success message
       alert(response.data.message);
-
-      // Redirect to questionnaire or dashboard
-      navigate("/questionnaire");
     } catch (err) {
       console.error("Login error details:", err);
       setError(err.response?.data?.message || "An error occurred during login");
@@ -45,6 +50,7 @@ const Login = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <Navbar />
       <div className="bg-white p-8 shadow-lg rounded-lg w-full max-w-md">
         <h2 className="text-2xl font-semibold text-center text-gray-800 mb-6">
           Login
