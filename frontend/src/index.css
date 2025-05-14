@@ -14,3 +14,12 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: 100px;
 }
+
+@keyframes progress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+.animate-progress-bar {
+  animation: progress 5s linear;
+}
