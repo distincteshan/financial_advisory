@@ -23,9 +23,22 @@ def signup():
         "has_completed_questionnaire": False,
         "risk_category": None
     }
-    users_collection.insert_one(user)
+    result = users_collection.insert_one(user)
+    user_id = str(result.inserted_id)
 
-    return jsonify({"message": "User created successfully"}), 201
+    # Generate JWT token
+    token = jwt.encode({
+        'user_id': user_id,
+        'username': data['username'],
+        'exp': datetime.utcnow() + timedelta(hours=24)
+    }, SECRET_KEY, algorithm="HS256")
+
+    return jsonify({
+        "message": "User created successfully",
+        "token": token,
+        "user_id": user_id,
+        "has_completed_questionnaire": False
+    }), 201
 
 @auth_blueprint.route("/login", methods=["POST"])
 def login():
@@ -82,35 +95,35 @@ def submit_questionnaire():
         except jwt.InvalidTokenError:
             return jsonify({"message": "Invalid token"}), 401
 
-        # Get answers from request
+        # Get answers and investment amount from request
         data = request.json
         answers = data.get('answers', {})
+        investment_amount = data.get('investmentAmount', 0)
         
         if len(answers) == 0:
             return jsonify({"message": "No answers provided"}), 400
 
-        # Question weights based on importance
+        if investment_amount < 50000:  # Minimum ₹50,000
+            return jsonify({"message": "Minimum investment amount is ₹50,000"}), 400
+
+        # Question weights for 6 questions
         weights = {
-            0: 1.5,  # Investment goal (most important)
-            1: 1.2,  # Investment timeline
-            2: 1.5,  # Risk reaction
-            3: 0.8,  # Investment knowledge
-            4: 0.7,  # Savings capacity
-            5: 1.3,  # Investment preference
-            6: 0.5,  # Monitoring frequency
-            7: 0.8,  # Income source
-            8: 1.2,  # Financial obligations
-            9: 1.0,  # Age group
+            1: 1.5,  # Investment horizon (most important)
+            2: 1.5,  # Risk comfort
+            3: 1.0,  # Income stability
+            4: 1.0,  # Emergency fund
+            5: 1.0,  # Investment knowledge
         }
         
-        # Calculate weighted risk score
+        # Calculate weighted risk score (excluding investment amount question)
         weighted_sum = 0
         total_weights = 0
         
         for question_index, answer_value in answers.items():
-            question_weight = weights.get(int(question_index), 1.0)
-            weighted_sum += answer_value * question_weight
-            total_weights += question_weight
+            if int(question_index) > 0:  # Skip investment amount question
+                question_weight = weights.get(int(question_index), 1.0)
+                weighted_sum += answer_value * question_weight
+                total_weights += question_weight
             
         risk_score = weighted_sum / total_weights
         
@@ -119,18 +132,76 @@ def submit_questionnaire():
         if risk_score <= 1.8:
             risk_category = "Very Conservative"
             risk_description = "Focus on capital preservation with minimal risk tolerance"
+            allocation = {
+                "NIFTY50": {"max": 0.20, "min_amount": 50000},
+                "GOLD": {"max": 0.60, "min_amount": 25000},
+                "BTC": {"max": 0.05, "min_amount": 10000},
+                "ETH": {"max": 0.05, "min_amount": 10000}
+            }
         elif risk_score <= 2.6:
             risk_category = "Conservative"
             risk_description = "Emphasis on stability with some growth potential"
+            allocation = {
+                "NIFTY50": {"max": 0.30, "min_amount": 50000},
+                "GOLD": {"max": 0.40, "min_amount": 25000},
+                "BTC": {"max": 0.10, "min_amount": 10000},
+                "ETH": {"max": 0.10, "min_amount": 10000}
+            }
         elif risk_score <= 3.4:
             risk_category = "Moderate"
             risk_description = "Balanced approach between stability and growth"
+            allocation = {
+                "NIFTY50": {"max": 0.40, "min_amount": 50000},
+                "GOLD": {"max": 0.30, "min_amount": 25000},
+                "BTC": {"max": 0.15, "min_amount": 10000},
+                "ETH": {"max": 0.15, "min_amount": 10000}
+            }
         elif risk_score <= 4.2:
             risk_category = "Aggressive"
             risk_description = "Growth-oriented with higher risk tolerance"
+            allocation = {
+                "NIFTY50": {"max": 0.50, "min_amount": 50000},
+                "GOLD": {"max": 0.20, "min_amount": 25000},
+                "BTC": {"max": 0.20, "min_amount": 10000},
+                "ETH": {"max": 0.15, "min_amount": 10000}
+            }
         else:
             risk_category = "Very Aggressive"
             risk_description = "Maximum growth potential with highest risk tolerance"
+            allocation = {
+                "NIFTY50": {"max": 0.60, "min_amount": 50000},
+                "GOLD": {"max": 0.15, "min_amount": 25000},
+                "BTC": {"max": 0.20, "min_amount": 10000},
+                "ETH": {"max": 0.15, "min_amount": 10000}
+            }
+
+        # Calculate actual allocation based on investment amount
+        actual_allocation = {}
+        remaining_amount = investment_amount
+
+        # First, allocate minimum amounts
+        for asset, details in allocation.items():
+            min_amount = details["min_amount"]
+            if remaining_amount >= min_amount:
+                actual_allocation[asset] = min_amount
+                remaining_amount -= min_amount
+            else:
+                actual_allocation[asset] = 0
+
+        # Then, distribute remaining amount according to max percentages
+        if remaining_amount > 0:
+            for asset, details in allocation.items():
+                max_additional = (details["max"] * investment_amount) - actual_allocation[asset]
+                if max_additional > 0:
+                    allocated = min(remaining_amount, max_additional)
+                    actual_allocation[asset] += allocated
+                    remaining_amount -= allocated
+
+        # Convert absolute amounts to percentages
+        percentage_allocation = {
+            asset: (amount / investment_amount) * 100 
+            for asset, amount in actual_allocation.items()
+        }
 
         # Update user in database
         users_collection.update_one(
@@ -142,6 +213,8 @@ def submit_questionnaire():
                     "risk_description": risk_description,
                     "has_completed_questionnaire": True,
                     "questionnaire_answers": answers,
+                    "investment_amount": investment_amount,
+                    "asset_allocation": percentage_allocation,
                     "questionnaire_completed_at": datetime.utcnow()
                 }
             }
@@ -151,9 +224,51 @@ def submit_questionnaire():
             "message": "Questionnaire submitted successfully",
             "risk_score": round(risk_score, 2),
             "risk_category": risk_category,
-            "risk_description": risk_description
+            "risk_description": risk_description,
+            "investment_amount": investment_amount,
+            "asset_allocation": percentage_allocation
         }), 200
 
     except Exception as e:
         print("Questionnaire submission error:", str(e))
         return jsonify({"message": "An error occurred during questionnaire submission"}), 500
+
+@auth_blueprint.route("/user-portfolio", methods=["GET"])
+def get_user_portfolio():
+    try:
+        # Get token from header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"message": "No token provided"}), 401
+        
+        token = auth_header.split(' ')[1]
+        
+        try:
+            # Decode token
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            user_id = payload['user_id']
+        except jwt.ExpiredSignatureError:
+            return jsonify({"message": "Token has expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"message": "Invalid token"}), 401
+
+        # Get user data from database
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+
+        # Return portfolio data
+        portfolio_data = {
+            "risk_score": user.get("risk_score"),
+            "risk_category": user.get("risk_category"),
+            "risk_description": user.get("risk_description"),
+            "investment_amount": user.get("investment_amount"),
+            "asset_allocation": user.get("asset_allocation", {}),
+            "questionnaire_completed_at": user.get("questionnaire_completed_at")
+        }
+
+        return jsonify(portfolio_data), 200
+
+    except Exception as e:
+        print("Error fetching user portfolio:", str(e))
+        return jsonify({"message": "An error occurred while fetching portfolio data"}), 500
