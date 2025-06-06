@@ -132,6 +132,7 @@ const Questionnaire = () => {
       setAnswers({ ...answers, [currentQuestion]: amount });
       setError('');
     } else {
+      // Handle other questions
       setAnswers({ ...answers, [currentQuestion]: value });
       setError('');
     }
@@ -161,6 +162,21 @@ const Questionnaire = () => {
 
     try {
       const token = localStorage.getItem('token');
+      
+      // Save questionnaire responses to localStorage
+      const questionnaireResponses = {
+        investmentAmount: answers[0],
+        riskProfile: {
+          timeHorizon: answers[1],
+          riskTolerance: answers[2],
+          incomeStability: answers[3],
+          emergencyFund: answers[4],
+          investmentKnowledge: answers[5]
+        }
+      };
+      
+      localStorage.setItem('questionnaireResponses', JSON.stringify(questionnaireResponses));
+      
       const response = await axios.post('http://localhost:5000/auth/submit-questionnaire', 
         { 
           answers,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Area } from '@ant-design/plots';
+import PriceChart from './PriceChart';
 
 const formatINR = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -14,53 +14,56 @@ const formatPercent = (value) => {
   return `${value.toFixed(2)}%`;
 };
 
-// Function to calculate portfolio value projection
-const calculatePortfolioProjection = (initialAmount, expectedReturn, years = 3) => {
-  const monthlyData = [];
-  const monthlyReturn = (1 + expectedReturn/100)**(1/12) - 1;
-  let currentValue = initialAmount;
-  
-  // Generate monthly data points for 3 years
-  for (let month = 0; month <= years * 12; month++) {
-    monthlyData.push({
-      month: `Month ${month}`,
-      value: currentValue,
-      // Format date for tooltip
-      date: new Date(Date.now() + month * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
-        year: 'numeric',
-        month: 'short'
-      })
-    });
-    currentValue *= (1 + monthlyReturn);
-  }
-  
-  return monthlyData;
+const AssetRow = ({ asset, onSelect }) => {
+  const isPositive = asset.expected_return >= 0;
+  return (
+    <div 
+      className="bg-gray-900 rounded-lg p-4 mb-3 hover:bg-gray-800 transition-all cursor-pointer"
+      onClick={() => onSelect(asset)}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className={`w-2 h-8 rounded-full ${isPositive ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <div>
+            <div className="text-white font-medium">{asset.name}</div>
+            <div className="text-gray-400 text-sm">{asset.ticker}</div>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-white font-medium">{formatINR(asset.amount)}</div>
+          <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+            {isPositive ? '↑' : '↓'} {formatPercent(Math.abs(asset.expected_return))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-const CategoryCard = ({ title, allocations, totalAmount }) => {
+const CategoryCard = ({ title, allocations, totalAmount, onSelectAsset }) => {
   const categoryTotal = allocations.reduce((sum, asset) => sum + asset.amount, 0);
   const categoryWeight = (categoryTotal / totalAmount) * 100;
+  const weightedReturn = allocations.reduce((sum, asset) => {
+    return sum + (asset.expected_return * (asset.amount / categoryTotal));
+  }, 0);
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold text-gray-800">{title}</h3>
-        <span className="text-sm font-medium text-gray-500">{formatPercent(categoryWeight)} of portfolio</span>
-      </div>
-      <div className="space-y-4">
-        {allocations.map((asset) => (
-          <div key={asset.ticker} className="flex justify-between items-center">
-            <div>
-              <div className="font-medium text-gray-700">{asset.name}</div>
-              <div className="text-sm text-gray-500">{formatPercent(asset.weight)} allocation</div>
-            </div>
-            <div className="text-right">
-              <div className="font-medium text-gray-700">{formatINR(asset.amount)}</div>
-              <div className="text-sm text-gray-500">
-                {asset.expected_return > 0 ? '+' : ''}{formatPercent(asset.expected_return)} exp. return
-              </div>
-            </div>
+    <div className="bg-gray-900 rounded-xl shadow-lg p-6 hover:shadow-2xl transition-all border border-gray-800">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h3 className="text-xl font-bold text-white mb-1">{title}</h3>
+          <span className="text-gray-400 text-sm">{formatPercent(categoryWeight)} of portfolio</span>
+        </div>
+        <div className="text-right">
+          <div className="text-white font-bold">{formatINR(categoryTotal)}</div>
+          <div className={`text-sm ${weightedReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {weightedReturn >= 0 ? '↑' : '↓'} {formatPercent(Math.abs(weightedReturn))}
           </div>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {allocations.map((asset) => (
+          <AssetRow key={asset.ticker} asset={asset} onSelect={onSelectAsset} />
         ))}
       </div>
     </div>
@@ -71,21 +74,107 @@ const Dashboard = () => {
   const [portfolioData, setPortfolioData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
     fetchPortfolioData();
   }, []);
 
+  useEffect(() => {
+    if (selectedAsset) {
+      fetchChartData(selectedAsset.ticker);
+    }
+  }, [selectedAsset]);
+
+  const fetchChartData = async (ticker) => {
+    try {
+      // For stocks (NSE)
+      if (ticker.endsWith('.NS')) {
+        const response = await axios.get(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`
+        );
+        
+        const quotes = response.data.chart.result[0].indicators.quote[0];
+        const timestamps = response.data.chart.result[0].timestamp;
+        
+        const chartData = timestamps.map((time, i) => ({
+          time: new Date(time * 1000).toISOString().split('T')[0],
+          open: quotes.open[i],
+          high: quotes.high[i],
+          low: quotes.low[i],
+          close: quotes.close[i],
+          volume: quotes.volume[i]
+        })).filter(item => item.open && item.high && item.low && item.close);
+
+        setChartData(chartData);
+      }
+      // For crypto
+      else if (ticker === 'BTC-INR' || ticker === 'ETH-INR' || ticker === 'SOL-INR') {
+        const symbol = ticker.split('-')[0].toLowerCase();
+        const response = await axios.get(
+          `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=inr&days=365&interval=daily`
+        );
+
+        const chartData = response.data.prices.map(([time, price]) => ({
+          time: new Date(time).toISOString().split('T')[0],
+          open: price,
+          high: price,
+          low: price,
+          close: price,
+          volume: 0
+        }));
+
+        setChartData(chartData);
+      }
+      // For mutual funds
+      else if (ticker.includes('FLEXI_CAP')) {
+        // Mutual fund data might need a different API
+        setChartData(null);
+      }
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+      setChartData(null);
+    }
+  };
+
   const fetchPortfolioData = async () => {
     try {
       setLoading(true);
-      const amount = localStorage.getItem('investmentAmount') || 100000;
-      const response = await axios.get(`http://localhost:5000/portfolio/get-portfolio?amount=${amount}`);
+      // Get questionnaire data from localStorage
+      const questionnaireData = localStorage.getItem('questionnaireResponses');
+      if (!questionnaireData) {
+        setError('No questionnaire data found. Please complete the questionnaire first.');
+        setLoading(false);
+        return;
+      }
+
+      const responses = JSON.parse(questionnaireData);
+      const investmentAmount = parseFloat(responses.investmentAmount);
+      
+      if (!investmentAmount || isNaN(investmentAmount)) {
+        setError('Invalid investment amount. Please complete the questionnaire again.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Investment Amount from Questionnaire:', investmentAmount);
+      
+      const response = await axios.get(`http://localhost:5000/portfolio/get-portfolio?amount=${investmentAmount}`);
+      
+      if (response.data.portfolio_metrics.total_investment !== investmentAmount) {
+        console.error('Investment amount mismatch:', {
+          requested: investmentAmount,
+          received: response.data.portfolio_metrics.total_investment
+        });
+        setError('Portfolio allocation amount does not match your investment amount');
+        return;
+      }
+      
       setPortfolioData(response.data);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch portfolio data');
+      setError('Failed to fetch portfolio data. ' + err.message);
       console.error('Error fetching portfolio data:', err);
     } finally {
       setLoading(false);
@@ -94,10 +183,10 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Optimizing your portfolio...</p>
+          <p className="text-gray-400">Optimizing your portfolio...</p>
         </div>
       </div>
     );
@@ -105,9 +194,9 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-red-50 p-6 rounded-lg text-red-700 max-w-md text-center">
-          <div className="text-xl font-bold mb-2">Oops!</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="bg-red-900/50 p-6 rounded-lg text-red-200 max-w-md text-center">
+          <div className="text-xl font-bold mb-2">Error</div>
           <div>{error}</div>
         </div>
       </div>
@@ -125,101 +214,54 @@ const Dashboard = () => {
     return acc;
   }, {}) || {};
 
-  // Calculate portfolio projection data
-  const projectionData = calculatePortfolioProjection(
-    portfolio_metrics?.total_investment || 0,
-    portfolio_metrics?.expected_return || 0
-  );
-
-  // Configure the area chart
-  const areaConfig = {
-    data: projectionData,
-    xField: 'month',
-    yField: 'value',
-    seriesField: 'type',
-    smooth: true,
-    animation: {
-      appear: {
-        animation: 'path-in',
-        duration: 1000,
-      },
-    },
-    xAxis: {
-      label: {
-        formatter: (v) => v.replace('Month ', ''),
-        style: {
-          fill: '#666',
-          fontSize: 12,
-        },
-      },
-      tickCount: 6,
-    },
-    yAxis: {
-      label: {
-        formatter: (v) => formatINR(v),
-        style: {
-          fill: '#666',
-          fontSize: 12,
-        },
-      },
-    },
-    tooltip: {
-      formatter: (datum) => ({
-        name: 'Projected Value',
-        value: formatINR(datum.value),
-        date: datum.date,
-      }),
-    },
-    areaStyle: () => ({
-      fill: 'l(270) 0:#ffffff 0.5:#7ec2f3 1:#1890ff',
-    }),
-    line: {
-      color: '#1890ff',
-    },
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header with total investment */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Your Investment Portfolio</h1>
-          <div className="text-4xl font-bold text-blue-600 mb-2">
+        <div className="bg-gray-800 rounded-xl shadow-lg p-8 mb-8 border border-gray-700">
+          <h1 className="text-3xl font-bold text-white mb-4">Your Investment Portfolio</h1>
+          <div className="text-4xl font-bold text-green-400 mb-2">
             {formatINR(portfolio_metrics?.total_investment)}
           </div>
-          <div className="text-gray-600">Total Investment Amount</div>
+          <div className="text-gray-400">Total Investment Amount</div>
         </div>
 
         {/* Portfolio Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-            <h3 className="text-lg font-medium mb-2">Expected Return</h3>
-            <div className="text-3xl font-bold">{formatPercent(portfolio_metrics?.expected_return || 0)}</div>
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h3 className="text-gray-400 font-medium mb-2">Expected Return</h3>
+            <div className="text-3xl font-bold text-white">
+              {formatPercent(portfolio_metrics?.expected_return || 0)}
+            </div>
           </div>
           
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-            <h3 className="text-lg font-medium mb-2">Portfolio Volatility</h3>
-            <div className="text-3xl font-bold">{formatPercent(portfolio_metrics?.volatility || 0)}</div>
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h3 className="text-gray-400 font-medium mb-2">Portfolio Volatility</h3>
+            <div className="text-3xl font-bold text-white">
+              {formatPercent(portfolio_metrics?.volatility || 0)}
+            </div>
           </div>
           
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
-            <h3 className="text-lg font-medium mb-2">Sharpe Ratio</h3>
-            <div className="text-3xl font-bold">{(portfolio_metrics?.sharpe_ratio || 0).toFixed(2)}</div>
+          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+            <h3 className="text-gray-400 font-medium mb-2">Sharpe Ratio</h3>
+            <div className="text-3xl font-bold text-white">
+              {(portfolio_metrics?.sharpe_ratio || 0).toFixed(2)}
+            </div>
           </div>
         </div>
 
-        {/* Portfolio Value Projection Chart */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold mb-6">Portfolio Value Projection</h2>
-          <div className="h-96">
-            <Area {...areaConfig} />
+        {/* Selected Asset Chart */}
+        {selectedAsset && chartData && (
+          <div className="bg-gray-800 rounded-xl shadow-lg p-6 mb-8 border border-gray-700">
+            <PriceChart 
+              data={chartData}
+              symbol={selectedAsset.name}
+              theme="dark"
+            />
           </div>
-          <div className="text-sm text-gray-500 mt-4 text-center">
-            Projected growth based on {formatPercent(portfolio_metrics?.expected_return || 0)} annual return
-          </div>
-        </div>
+        )}
 
-        {/* Category Cards */}
+        {/* Category Cards in Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {Object.entries(groupedAllocations).map(([category, assets]) => (
             <CategoryCard
@@ -227,6 +269,7 @@ const Dashboard = () => {
               title={category}
               allocations={assets}
               totalAmount={portfolio_metrics?.total_investment}
+              onSelectAsset={setSelectedAsset}
             />
           ))}
         </div>

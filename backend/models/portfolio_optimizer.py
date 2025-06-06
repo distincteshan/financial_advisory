@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
+from scipy.optimize import minimize
 
 class EnhancedPortfolioOptimizer:
     def __init__(self, risk_free_rate=0.07):
@@ -38,6 +39,7 @@ class EnhancedPortfolioOptimizer:
         self.price_data = None
         self.returns = None
         self.volatility = None
+        self.covariance = None
 
     def get_optimized_portfolio(self, investment_amount):
         try:
@@ -52,7 +54,7 @@ class EnhancedPortfolioOptimizer:
             self.calculate_metrics()
             
             # Calculate optimal allocation based on risk-return profile
-            allocation = self.calculate_allocation(investment_amount)
+            allocation = self.optimize_portfolio(investment_amount)
             
             # Format the results with proper validation
             result = {
@@ -147,41 +149,92 @@ class EnhancedPortfolioOptimizer:
         # Calculate annualized metrics
         self.returns = returns.mean() * 252
         self.volatility = returns.std() * np.sqrt(252)
+        self.covariance = returns.cov() * 252
         
         # Calculate correlation matrix
         self.correlation = returns.corr()
 
-    def calculate_allocation(self, investment_amount):
-        """Calculate optimal allocation based on constraints and risk-return profile"""
+    def negative_sharpe_ratio(self, weights, returns, cov_matrix):
+        """Calculate negative Sharpe ratio for optimization"""
+        portfolio_return = np.sum(returns * weights)
+        portfolio_std = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
+        sharpe = (portfolio_return - self.risk_free_rate) / portfolio_std
+        return -sharpe  # Negative because we want to maximize Sharpe ratio
+
+    def optimize_portfolio(self, investment_amount):
+        """Optimize portfolio using Sharpe ratio and risk constraints"""
         allocation = {}
         
-        # Initialize allocation structure
         for category, assets in self.assets.items():
             allocation[category] = {}
-            category_weight = self.get_category_weight(category)
-            category_amount = investment_amount * (category_weight / 100)
+            category_tickers = list(assets.keys())
             
-            # Allocate within category based on constraints and performance
-            total_weight = 0
-            for asset, constraints in assets.items():
-                weight = constraints['min']  # Start with minimum weight
-                amount = category_amount * (weight / 100)
+            if not category_tickers:
+                continue
                 
-                allocation[category][asset] = {
-                    'weight': weight,
-                    'amount': amount,
-                    'return': self.returns.get(asset, 0.10),  # Default 10% if no data
-                    'volatility': self.volatility.get(asset, 0.15)  # Default 15% if no data
-                }
-                total_weight += weight
+            # Get returns and covariance for category assets
+            category_returns = self.returns[category_tickers]
+            category_cov = self.covariance.loc[category_tickers, category_tickers]
             
-            # Normalize weights within category
-            if total_weight > 0:
-                for asset in allocation[category]:
-                    allocation[category][asset]['weight'] = (allocation[category][asset]['weight'] / total_weight) * 100
-                    allocation[category][asset]['amount'] = category_amount * (allocation[category][asset]['weight'] / 100)
+            # Set up constraints
+            n_assets = len(category_tickers)
+            constraints = [
+                {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}  # Weights sum to 1
+            ]
+            
+            # Add minimum and maximum weight constraints
+            bounds = []
+            for ticker in category_tickers:
+                min_weight = assets[ticker]['min'] / 100
+                max_weight = assets[ticker]['max'] / 100
+                bounds.append((min_weight, max_weight))
+            
+            # Initial guess: equal weights
+            initial_weights = np.array([1/n_assets] * n_assets)
+            
+            # Optimize!
+            result = minimize(
+                self.negative_sharpe_ratio,
+                initial_weights,
+                args=(category_returns, category_cov),
+                method='SLSQP',
+                bounds=bounds,
+                constraints=constraints
+            )
+            
+            if result.success:
+                optimized_weights = result.x
+                category_amount = investment_amount * (self.get_category_weight(category) / 100)
+                
+                # Store results
+                for i, ticker in enumerate(category_tickers):
+                    weight = optimized_weights[i] * 100  # Convert to percentage
+                    amount = category_amount * (weight / 100)
+                    
+                    allocation[category][ticker] = {
+                        'weight': weight,
+                        'amount': amount,
+                        'return': float(self.returns[ticker]),
+                        'volatility': float(self.volatility[ticker])
+                    }
+            else:
+                print(f"Optimization failed for category {category}")
+                # Fallback to minimum weights if optimization fails
+                category_amount = investment_amount * (self.get_category_weight(category) / 100)
+                total_min_weight = sum(assets[t]['min'] for t in category_tickers)
+                
+                for ticker in category_tickers:
+                    weight = (assets[ticker]['min'] / total_min_weight) * 100
+                    amount = category_amount * (weight / 100)
+                    
+                    allocation[category][ticker] = {
+                        'weight': weight,
+                        'amount': amount,
+                        'return': float(self.returns.get(ticker, 0.10)),
+                        'volatility': float(self.volatility.get(ticker, 0.15))
+                    }
         
-        # Calculate portfolio metrics
+        # Calculate overall portfolio metrics
         self.calculate_portfolio_metrics(allocation, investment_amount)
         
         return allocation
