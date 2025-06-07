@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import PriceChart from './PriceChart';
 
 const formatINR = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -14,14 +13,61 @@ const formatPercent = (value) => {
   return `${value.toFixed(2)}%`;
 };
 
-const AssetRow = ({ asset, onSelect }) => {
+const formatQuantity = (value) => {
+  return new Intl.NumberFormat('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  }).format(value);
+};
+
+const AssetRow = ({ asset }) => {
+  const [marketData, setMarketData] = useState({
+    currentPrice: null,
+    expectedPrice: null,
+    loading: true,
+    error: null
+  });
+
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/market/price/${asset.ticker}`);
+        if (response.data.error) {
+          setMarketData({
+            currentPrice: null,
+            expectedPrice: null,
+            loading: false,
+            error: response.data.error
+          });
+        } else {
+          const currentPrice = response.data.current_price;
+          const expectedPrice = currentPrice * (1 + asset.expected_return / 100);
+          setMarketData({
+            currentPrice,
+            expectedPrice,
+            loading: false,
+            error: null
+          });
+        }
+      } catch (error) {
+        setMarketData({
+          currentPrice: null,
+          expectedPrice: null,
+          loading: false,
+          error: 'Failed to fetch price'
+        });
+      }
+    };
+
+    fetchMarketData();
+  }, [asset.ticker]);
+
+  const currentValue = marketData.currentPrice ? marketData.currentPrice * asset.quantity : null;
   const isPositive = asset.expected_return >= 0;
+
   return (
-    <div 
-      className="bg-gray-900 rounded-lg p-4 mb-3 hover:bg-gray-800 transition-all cursor-pointer"
-      onClick={() => onSelect(asset)}
-    >
-      <div className="flex items-center justify-between">
+    <tr className="border-b border-gray-800">
+      <td className="py-4 px-4">
         <div className="flex items-center space-x-3">
           <div className={`w-2 h-8 rounded-full ${isPositive ? 'bg-green-500' : 'bg-red-500'}`}></div>
           <div>
@@ -29,18 +75,64 @@ const AssetRow = ({ asset, onSelect }) => {
             <div className="text-gray-400 text-sm">{asset.ticker}</div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-white font-medium">{formatINR(asset.amount)}</div>
-          <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-            {isPositive ? '↑' : '↓'} {formatPercent(Math.abs(asset.expected_return))}
+      </td>
+      <td className="py-4 px-4 text-right">
+        <div className="text-white">{formatQuantity(asset.quantity)}</div>
+        <div className="text-gray-400 text-sm">Units</div>
+      </td>
+      <td className="py-4 px-4 text-right">
+        {marketData.loading ? (
+          <div className="text-gray-400">Loading...</div>
+        ) : marketData.error ? (
+          <div className="text-red-400 text-sm">{marketData.error}</div>
+        ) : (
+          <div>
+            <div className="text-white">{formatINR(marketData.currentPrice)}</div>
+            <div className="text-gray-400 text-sm">Current Price</div>
           </div>
+        )}
+      </td>
+      <td className="py-4 px-4 text-right">
+        {marketData.loading ? (
+          <div className="text-gray-400">Loading...</div>
+        ) : marketData.error ? (
+          <div className="text-red-400 text-sm">{marketData.error}</div>
+        ) : (
+          <div>
+            <div className="text-white">{formatINR(currentValue)}</div>
+            <div className="text-gray-400 text-sm">Current Value</div>
+          </div>
+        )}
+      </td>
+      <td className="py-4 px-4 text-right">
+        <div className="text-white">{formatINR(asset.initial_investment)}</div>
+        <div className="text-gray-400 text-sm">Initial Investment</div>
+      </td>
+      <td className="py-4 px-4 text-right">
+        {marketData.loading ? (
+          <div className="text-gray-400">Loading...</div>
+        ) : marketData.error ? (
+          <div className="text-red-400 text-sm">{marketData.error}</div>
+        ) : (
+          <div>
+            <div className={`font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+              {formatINR(marketData.expectedPrice)}
+            </div>
+            <div className="text-gray-400 text-sm">Expected in 1Y</div>
+          </div>
+        )}
+      </td>
+      <td className="py-4 px-4 text-right">
+        <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+          {isPositive ? '↑' : '↓'} {formatPercent(Math.abs(asset.expected_return))}
         </div>
-      </div>
-    </div>
+        <div className="text-gray-400 text-sm">Expected Return</div>
+      </td>
+    </tr>
   );
 };
 
-const CategoryCard = ({ title, allocations, totalAmount, onSelectAsset }) => {
+const CategoryCard = ({ title, allocations, totalAmount }) => {
   const categoryTotal = allocations.reduce((sum, asset) => sum + asset.amount, 0);
   const categoryWeight = (categoryTotal / totalAmount) * 100;
   const weightedReturn = allocations.reduce((sum, asset) => {
@@ -61,10 +153,25 @@ const CategoryCard = ({ title, allocations, totalAmount, onSelectAsset }) => {
           </div>
         </div>
       </div>
-      <div className="space-y-2">
-        {allocations.map((asset) => (
-          <AssetRow key={asset.ticker} asset={asset} onSelect={onSelectAsset} />
-        ))}
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead>
+            <tr className="text-gray-400 text-sm">
+              <th className="py-3 px-4 text-left">Asset</th>
+              <th className="py-3 px-4 text-right">Quantity</th>
+              <th className="py-3 px-4 text-right">Market Price</th>
+              <th className="py-3 px-4 text-right">Current Value</th>
+              <th className="py-3 px-4 text-right">Initial Investment</th>
+              <th className="py-3 px-4 text-right">Expected Price</th>
+              <th className="py-3 px-4 text-right">Expected Return</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allocations.map((asset) => (
+              <AssetRow key={asset.ticker} asset={asset} />
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -74,74 +181,14 @@ const Dashboard = () => {
   const [portfolioData, setPortfolioData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedAsset, setSelectedAsset] = useState(null);
-  const [chartData, setChartData] = useState(null);
 
   useEffect(() => {
     fetchPortfolioData();
   }, []);
 
-  useEffect(() => {
-    if (selectedAsset) {
-      fetchChartData(selectedAsset.ticker);
-    }
-  }, [selectedAsset]);
-
-  const fetchChartData = async (ticker) => {
-    try {
-      // For stocks (NSE)
-      if (ticker.endsWith('.NS')) {
-        const response = await axios.get(
-          `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`
-        );
-        
-        const quotes = response.data.chart.result[0].indicators.quote[0];
-        const timestamps = response.data.chart.result[0].timestamp;
-        
-        const chartData = timestamps.map((time, i) => ({
-          time: new Date(time * 1000).toISOString().split('T')[0],
-          open: quotes.open[i],
-          high: quotes.high[i],
-          low: quotes.low[i],
-          close: quotes.close[i],
-          volume: quotes.volume[i]
-        })).filter(item => item.open && item.high && item.low && item.close);
-
-        setChartData(chartData);
-      }
-      // For crypto
-      else if (ticker === 'BTC-INR' || ticker === 'ETH-INR' || ticker === 'SOL-INR') {
-        const symbol = ticker.split('-')[0].toLowerCase();
-        const response = await axios.get(
-          `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=inr&days=365&interval=daily`
-        );
-
-        const chartData = response.data.prices.map(([time, price]) => ({
-          time: new Date(time).toISOString().split('T')[0],
-          open: price,
-          high: price,
-          low: price,
-          close: price,
-          volume: 0
-        }));
-
-        setChartData(chartData);
-      }
-      // For mutual funds
-      else if (ticker.includes('FLEXI_CAP')) {
-        // Mutual fund data might need a different API
-        setChartData(null);
-      }
-    } catch (error) {
-      console.error('Error fetching chart data:', error);
-      setChartData(null);
-    }
-  };
-
   const fetchPortfolioData = async () => {
     try {
       setLoading(true);
-      // Get questionnaire data from localStorage
       const questionnaireData = localStorage.getItem('questionnaireResponses');
       if (!questionnaireData) {
         setError('No questionnaire data found. Please complete the questionnaire first.');
@@ -158,8 +205,6 @@ const Dashboard = () => {
         return;
       }
 
-      console.log('Investment Amount from Questionnaire:', investmentAmount);
-      
       const response = await axios.get(`http://localhost:5000/portfolio/get-portfolio?amount=${investmentAmount}`);
       
       if (response.data.portfolio_metrics.total_investment !== investmentAmount) {
@@ -250,17 +295,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Selected Asset Chart */}
-        {selectedAsset && chartData && (
-          <div className="bg-gray-800 rounded-xl shadow-lg p-6 mb-8 border border-gray-700">
-            <PriceChart 
-              data={chartData}
-              symbol={selectedAsset.name}
-              theme="dark"
-            />
-          </div>
-        )}
-
         {/* Category Cards in Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {Object.entries(groupedAllocations).map(([category, assets]) => (
@@ -269,7 +303,6 @@ const Dashboard = () => {
               title={category}
               allocations={assets}
               totalAmount={portfolio_metrics?.total_investment}
-              onSelectAsset={setSelectedAsset}
             />
           ))}
         </div>
