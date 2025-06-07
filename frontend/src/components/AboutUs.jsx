@@ -1,0 +1,164 @@
+import React from 'react';
+import Navbar from './NavBar';
+import { motion } from 'framer-motion';
+import { fadeIn } from '../utils/motion';
+
+const TeamMember = ({ name, role, description, image }) => (
+  <div className="bg-black/30 rounded-xl p-6 border border-gray-800 hover:border-indigo-500/30 transition-all duration-300 group">
+    <div className="flex flex-col items-center text-center">
+      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 mb-4 overflow-hidden">
+        <div className="w-full h-full flex items-center justify-center text-3xl group-hover:scale-110 transition-transform duration-300">
+          {name[0]}
+        </div>
+      </div>
+      <h3 className="text-xl font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors duration-300">{name}</h3>
+      <p className="text-indigo-400 mb-3">{role}</p>
+      <p className="text-gray-400">{description}</p>
+    </div>
+  </div>
+);
+
+const AboutUs = () => {
+  const teamMembers = [
+    {
+      name: "Dr. Sarah Chen",
+      role: "Chief Investment Strategist",
+      description: "PhD in Financial Mathematics with 15 years of experience in quantitative portfolio management.",
+    },
+    {
+      name: "Alex Kumar",
+      role: "AI Research Lead",
+      description: "Specialist in machine learning applications in financial markets and risk assessment.",
+    },
+    {
+      name: "Michael Zhang",
+      role: "Portfolio Optimization Expert",
+      description: "Expert in modern portfolio theory and algorithmic trading strategies.",
+    },
+    {
+      name: "Dr. Lisa Patel",
+      role: "Risk Management Director",
+      description: "Specialized in developing robust risk management frameworks for investment portfolios.",
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-black">
+      {/* Gradient Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black -z-10"></div>
+      
+      {/* Animated Dots */}
+      <div className="fixed inset-0 bg-[radial-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:50px_50px] -z-10"></div>
+
+      <Navbar />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        {/* Hero Section */}
+        <motion.div 
+          variants={fadeIn("up", 0.3)}
+          initial="hidden"
+          animate="show"
+          className="text-center mb-20 relative"
+        >
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl -z-10"></div>
+          <h1 className="text-5xl font-bold text-white mb-6 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            About Us
+          </h1>
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
+            We're a team of financial experts, data scientists, and technology innovators working 
+            together to democratize advanced portfolio management strategies.
+          </p>
+        </motion.div>
+
+        {/* Mission Section */}
+        <motion.div 
+          variants={fadeIn("up", 0.4)}
+          initial="hidden"
+          animate="show"
+          className="bg-black/40 rounded-2xl p-8 mb-20 border border-gray-800"
+        >
+          <h2 className="text-3xl font-bold text-white mb-8 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+            Our Mission
+          </h2>
+          <div className="space-y-6 text-gray-400">
+            <p>
+              At AI Financial Advisor, we believe that sophisticated investment strategies shouldn't be 
+              limited to institutional investors. Our mission is to make advanced portfolio optimization 
+              accessible to individual investors through artificial intelligence and modern technology.
+            </p>
+            <p>
+              We combine Nobel Prize-winning financial theories with cutting-edge AI to provide personalized 
+              investment strategies that adapt to each investor's unique goals and risk tolerance.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* What Sets Us Apart */}
+        <motion.div 
+          variants={fadeIn("up", 0.5)}
+          initial="hidden"
+          animate="show"
+          className="mb-20"
+        >
+          <h2 className="text-3xl font-bold text-white mb-8 bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
+            What Sets Us Apart
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-black/40 rounded-xl p-8 border border-gray-800">
+              <h3 className="text-xl font-bold text-white mb-4">Advanced Technology</h3>
+              <ul className="text-gray-400 space-y-3">
+                <li className="flex items-center space-x-2">
+                  <span className="text-indigo-400">•</span>
+                  <span>AI-powered portfolio optimization</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-indigo-400">•</span>
+                  <span>Real-time market analysis</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-indigo-400">•</span>
+                  <span>Machine learning risk assessment</span>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-black/40 rounded-xl p-8 border border-gray-800">
+              <h3 className="text-xl font-bold text-white mb-4">Expert Knowledge</h3>
+              <ul className="text-gray-400 space-y-3">
+                <li className="flex items-center space-x-2">
+                  <span className="text-indigo-400">•</span>
+                  <span>Research-backed strategies</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-indigo-400">•</span>
+                  <span>Decades of market experience</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <span className="text-indigo-400">•</span>
+                  <span>Continuous innovation</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Team Section */}
+        <motion.div 
+          variants={fadeIn("up", 0.6)}
+          initial="hidden"
+          animate="show"
+        >
+          <h2 className="text-3xl font-bold text-white mb-8 bg-gradient-to-r from-pink-500 to-indigo-500 bg-clip-text text-transparent">
+            Our Team
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {teamMembers.map((member, index) => (
+              <TeamMember key={index} {...member} />
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default AboutUs; 

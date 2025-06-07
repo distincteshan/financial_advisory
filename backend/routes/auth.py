@@ -5,9 +5,9 @@ import jwt
 from datetime import datetime, date, time, timedelta
 from bson import ObjectId
 
-auth_blueprint = Blueprint("auth", __name__)
+auth = Blueprint("auth", __name__)
 
-@auth_blueprint.route("/signup", methods=["POST"])
+@auth.route("/signup", methods=["POST"])
 def signup():
     data = request.json
     if users_collection.find_one({"username": data["username"]}):
@@ -40,8 +40,11 @@ def signup():
         "has_completed_questionnaire": False
     }), 201
 
-@auth_blueprint.route("/login", methods=["POST"])
+@auth.route("/login", methods=["POST", "OPTIONS"])
 def login():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+        
     try:
         data = request.json
         print("Login request data:", data)  # Add this for debugging
@@ -76,7 +79,7 @@ def login():
         print("Login error:", str(e))  # Add this for debugging
         return jsonify({"message": "An error occurred during login"}), 500
 
-@auth_blueprint.route("/submit-questionnaire", methods=["POST"])
+@auth.route("/submit-questionnaire", methods=["POST"])
 def submit_questionnaire():
     try:
         # Get token from header
@@ -233,7 +236,7 @@ def submit_questionnaire():
         print("Questionnaire submission error:", str(e))
         return jsonify({"message": "An error occurred during questionnaire submission"}), 500
 
-@auth_blueprint.route("/user-portfolio", methods=["GET"])
+@auth.route("/user-portfolio", methods=["GET"])
 def get_user_portfolio():
     try:
         # Get token from header

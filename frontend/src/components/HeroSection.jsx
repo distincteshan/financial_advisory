@@ -1,9 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { fadeIn, textVariant } from "../utils/motion.js";
 import heroImage from "../assets/images/photo_collage.png";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    navigate('/signup');
+  };
+
   return (
     <section
       id="home"

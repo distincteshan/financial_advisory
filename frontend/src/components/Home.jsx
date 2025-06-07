@@ -4,6 +4,7 @@ import Navbar from "./NavBar";
 import HeroSection from "./HeroSection";
 import Purpose from "./Purpose";
 import ServicesSection from "./ServicesSection";
+
 const Home = () => {
   const [isVisible, setIsVisible] = useState({
     hero: false,
@@ -41,8 +42,6 @@ const Home = () => {
       <div className="absolute -top-28 -left-28 w-[500px] h-[500px] bg-gradient-to-tr from-indigo-500/20 to-pink-500/20 rounded-full blur-[80px] -z-10"></div>
       <div className="bg-cover bg-center bg-no-repeat h-svh">
         <Navbar />
-        {/* Hero Section */}
-
         <HeroSection />
         <Purpose />
         <ServicesSection />
