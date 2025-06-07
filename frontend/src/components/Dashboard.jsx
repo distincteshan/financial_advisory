@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import PortfolioCharts from './PortfolioCharts';
 
 const formatINR = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -248,64 +249,31 @@ const Dashboard = () => {
     );
   }
 
-  const { portfolio_metrics, allocations } = portfolioData || {};
+  if (!portfolioData) return null;
 
-  // Group allocations by category
-  const groupedAllocations = allocations?.reduce((acc, asset) => {
-    if (!acc[asset.category]) {
-      acc[asset.category] = [];
+  const groupedAllocations = portfolioData.allocations.reduce((acc, allocation) => {
+    if (!acc[allocation.category]) {
+      acc[allocation.category] = [];
     }
-    acc[asset.category].push(asset);
+    acc[allocation.category].push(allocation);
     return acc;
-  }, {}) || {};
+  }, {});
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header with total investment */}
-        <div className="bg-gray-800 rounded-xl shadow-lg p-8 mb-8 border border-gray-700">
-          <h1 className="text-3xl font-bold text-white mb-4">Your Investment Portfolio</h1>
-          <div className="text-4xl font-bold text-green-400 mb-2">
-            {formatINR(portfolio_metrics?.total_investment)}
-          </div>
-          <div className="text-gray-400">Total Investment Amount</div>
-        </div>
+    <div className="min-h-screen bg-gray-900 p-8">
+      {/* Portfolio Charts */}
+      <PortfolioCharts portfolioData={portfolioData} />
 
-        {/* Portfolio Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-            <h3 className="text-gray-400 font-medium mb-2">Expected Return</h3>
-            <div className="text-3xl font-bold text-white">
-              {formatPercent(portfolio_metrics?.expected_return || 0)}
-            </div>
-          </div>
-          
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-            <h3 className="text-gray-400 font-medium mb-2">Portfolio Volatility</h3>
-            <div className="text-3xl font-bold text-white">
-              {formatPercent(portfolio_metrics?.volatility || 0)}
-            </div>
-          </div>
-          
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-            <h3 className="text-gray-400 font-medium mb-2">Sharpe Ratio</h3>
-            <div className="text-3xl font-bold text-white">
-              {(portfolio_metrics?.sharpe_ratio || 0).toFixed(2)}
-            </div>
-          </div>
-        </div>
-
-        {/* Category Cards in Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {Object.entries(groupedAllocations).map(([category, assets]) => (
-            <CategoryCard
-              key={category}
-              title={category}
-              allocations={assets}
-              totalAmount={portfolio_metrics?.total_investment}
-            />
-          ))}
-        </div>
+      {/* Category Cards */}
+      <div className="mt-8 space-y-8">
+        {Object.entries(groupedAllocations).map(([category, allocations]) => (
+          <CategoryCard
+            key={category}
+            title={category}
+            allocations={allocations}
+            totalAmount={portfolioData.portfolio_metrics.total_investment}
+          />
+        ))}
       </div>
     </div>
   );
