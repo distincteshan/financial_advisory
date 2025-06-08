@@ -169,6 +169,9 @@ class EnhancedPortfolioOptimizer:
         risk_factor = self.calculate_risk_factor(risk_score, risk_category)
         print(f"Using risk factor: {risk_factor} for portfolio optimization")
         
+        # Track total allocation to ensure we don't exceed investment amount
+        total_allocated = 0
+        
         for category, assets in self.assets.items():
             allocation[category] = {}
             category_tickers = list(assets.keys())
@@ -210,6 +213,7 @@ class EnhancedPortfolioOptimizer:
                 for i, ticker in enumerate(category_tickers):
                     weight = optimized_weights[i] * 100  # Convert to percentage
                     amount = category_amount * (weight / 100)
+                    total_allocated += amount
                     
                     allocation[category][ticker] = {
                         'weight': weight,
@@ -226,6 +230,7 @@ class EnhancedPortfolioOptimizer:
                 for ticker in category_tickers:
                     weight = (assets[ticker]['min'] / total_min_weight) * 100
                     amount = category_amount * (weight / 100)
+                    total_allocated += amount
                     
                     allocation[category][ticker] = {
                         'weight': weight,
@@ -233,6 +238,19 @@ class EnhancedPortfolioOptimizer:
                         'return': float(self.returns.get(ticker, 0.10)),
                         'volatility': float(self.volatility.get(ticker, 0.15))
                     }
+        
+        # Check if total allocation exceeds investment amount
+        if total_allocated > investment_amount * 1.001:  # Allow 0.1% margin for rounding errors
+            print(f"Warning: Total allocation ({total_allocated}) exceeds investment amount ({investment_amount})")
+            # Scale down all allocations proportionally
+            scale_factor = investment_amount / total_allocated
+            for category in allocation:
+                for ticker in allocation[category]:
+                    allocation[category][ticker]['amount'] *= scale_factor
+                    # Adjust weight based on new amount
+                    allocation[category][ticker]['weight'] = (allocation[category][ticker]['amount'] / investment_amount) * 100
+            
+            print(f"Scaled down allocations by factor of {scale_factor}")
         
         # Calculate overall portfolio metrics
         self.calculate_portfolio_metrics(allocation, investment_amount)

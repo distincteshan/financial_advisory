@@ -53,7 +53,7 @@ def get_asset_prices():
         'BTC-INR': 4500000,
         'ETH-INR': 250000,
         'SOL-INR': 8000,
-        'HDFC_FLEXI_CAP': 100,
+        'HDFC_FLEXI_CAP': 1961,  # Updated to current market price, not NAV
         'GC=F': 60000
     }
 
@@ -206,6 +206,58 @@ def get_risk_based_allocation(risk_score, risk_category=None):
     
     return assets_data
 
+def validate_mutual_fund_allocations(allocations, investment_amount):
+    """
+    Validate mutual fund allocations to ensure they don't exceed investment amount
+    and quantities are consistent with market prices.
+    
+    Parameters:
+    allocations (list): List of asset allocations
+    investment_amount (float): Total investment amount
+    
+    Returns:
+    list: Corrected allocations
+    """
+    # Find mutual fund allocations
+    mf_allocations = [a for a in allocations if a['category'] == 'Mutual Funds']
+    
+    if not mf_allocations:
+        return allocations
+    
+    for mf in mf_allocations:
+        # Recalculate quantity based on initial investment and current price
+        mf['quantity'] = round(mf['initial_investment'] / mf['current_price'], 4)
+        
+        # Update amount to reflect current value
+        current_value = mf['quantity'] * mf['current_price']
+        mf['amount'] = current_value
+        
+        logger.debug(f"Mutual fund {mf['name']} - Initial: {mf['initial_investment']}, " + 
+                     f"Price: {mf['current_price']}, Quantity: {mf['quantity']}, " +
+                     f"Current Value: {mf['amount']}")
+    
+    # Validate total mutual fund allocation
+    total_mf_initial = sum(mf['initial_investment'] for mf in mf_allocations)
+    mf_weight = total_mf_initial / investment_amount
+    
+    # If mutual fund initial investment is more than 50% of investment, adjust it
+    if mf_weight > 0.5:
+        logger.warning(f"Mutual fund allocation ({total_mf_initial}) exceeds 50% of investment")
+        scale_factor = (0.5 * investment_amount) / total_mf_initial
+        
+        for mf in mf_allocations:
+            old_amount = mf['initial_investment']
+            mf['initial_investment'] *= scale_factor
+            mf['weight'] = (mf['initial_investment'] / investment_amount)
+            
+            # Recalculate quantity and current value
+            mf['quantity'] = round(mf['initial_investment'] / mf['current_price'], 4)
+            mf['amount'] = mf['quantity'] * mf['current_price']
+            
+            logger.debug(f"Scaled {mf['name']} from {old_amount} to {mf['initial_investment']}")
+    
+    return allocations
+
 @portfolio.route('/get-portfolio', methods=['GET'])
 def get_portfolio():
     try:
@@ -267,9 +319,12 @@ def get_portfolio():
                     actual_amount = quantity * current_price
                     remaining_amount += asset_amount - actual_amount
                 elif category == 'Mutual Funds':
-                    # For mutual funds, use 4 decimal places
-                    quantity = round(asset_amount / asset['nav'], 4)
-                    actual_amount = quantity * asset['nav']
+                    # For mutual funds, calculate quantity based on initial investment
+                    # Strictly use the formula: quantity = initial_investment / market_price
+                    quantity = round(asset_amount / current_price, 4)
+                    initial_investment = asset_amount  # This is the allocated amount for this asset
+                    # Current value might fluctuate based on market price, but initial investment remains fixed
+                    actual_amount = quantity * current_price  # This represents current value
                 else:
                     # For other assets (crypto, commodities), use normal division
                     quantity = asset_amount / current_price
@@ -280,9 +335,9 @@ def get_portfolio():
                     'ticker': asset['ticker'],
                     'category': category,
                     'expected_return': asset['expected_return'],
-                    'amount': actual_amount,
+                    'amount': actual_amount,  # Current value
                     'quantity': quantity,
-                    'initial_investment': actual_amount,
+                    'initial_investment': asset_amount,  # Always preserve the original allocated amount
                     'weight': asset['weight'],
                     'current_price': current_price
                 })
@@ -291,12 +346,41 @@ def get_portfolio():
         if remaining_amount > 0 and any(a['category'] == 'Mutual Funds' for a in allocations):
             for allocation in allocations:
                 if allocation['category'] == 'Mutual Funds':
-                    additional_units = round(remaining_amount / allocation['current_price'], 4)
-                    allocation['quantity'] += additional_units
-                    allocation['amount'] += remaining_amount
+                    # Add remaining amount to initial investment
                     allocation['initial_investment'] += remaining_amount
+                    
+                    # Recalculate quantity and current value based on initial investment
+                    allocation['quantity'] = round(allocation['initial_investment'] / allocation['current_price'], 4)
+                    allocation['amount'] = allocation['quantity'] * allocation['current_price']
+                    
+                    # Update weight to reflect new initial investment
+                    allocation['weight'] = allocation['initial_investment'] / investment_amount
+                    
+                    logger.debug(f"Added remaining {remaining_amount} to {allocation['name']}, " +
+                                f"new quantity: {allocation['quantity']}, " +
+                                f"new value: {allocation['amount']}")
+                    
                     remaining_amount = 0
                     break
+                    
+        # Validate mutual fund allocations specifically
+        allocations = validate_mutual_fund_allocations(allocations, investment_amount)
+
+        # Validate total allocation doesn't exceed investment amount
+        total_allocated_initial = sum(allocation['initial_investment'] for allocation in allocations)
+        if total_allocated_initial > investment_amount * 1.001:  # Allow 0.1% margin for rounding errors
+            logger.warning(f"Total initial allocation ({total_allocated_initial}) exceeds investment amount ({investment_amount})")
+            # Scale down allocations proportionally
+            scale_factor = investment_amount / total_allocated_initial
+            for allocation in allocations:
+                allocation['initial_investment'] *= scale_factor
+                allocation['weight'] *= scale_factor
+                
+                # Recalculate quantity and current value
+                allocation['quantity'] = round(allocation['initial_investment'] / allocation['current_price'], 4)
+                allocation['amount'] = allocation['quantity'] * allocation['current_price']
+            
+            logger.debug(f"Scaled down allocations by factor of {scale_factor}")
 
         # Calculate portfolio metrics
         weights = np.array([asset['weight'] for asset in allocations])
@@ -345,14 +429,34 @@ def get_portfolio():
                     'error': 'Invalid numerical values in allocation data'
                 }), 500
         
+        # Final validation of total allocation
+        final_total_initial = sum(float(a['initial_investment']) for a in allocations)
+        if abs(final_total_initial - investment_amount) > 0.01 * investment_amount:
+            logger.warning(f"Final total initial allocation ({final_total_initial}) still differs from investment amount ({investment_amount})")
+            logger.warning("Adjusting response to show correct values")
+            
+            # Calculate corrected weights
+            for allocation in allocations:
+                allocation['weight'] = (allocation['initial_investment'] / final_total_initial) * 100
+                
+            # Add note about adjustment to response
+            note = f"Allocation adjusted to match investment amount ({investment_amount})"
+        else:
+            note = "Allocation matches investment amount"
+        
+        # Calculate total current value
+        total_current_value = sum(float(a['amount']) for a in allocations)
+        
         logger.debug("Returning validated portfolio data to client")
         return jsonify({
             'portfolio_metrics': {
                 'total_investment': investment_amount,
+                'total_current_value': total_current_value,
                 'expected_return': portfolio_return * 100,
                 'volatility': portfolio_volatility * 100,
                 'sharpe_ratio': sharpe_ratio,
-                'remaining_amount': remaining_amount  # Include any remaining amount in response
+                'remaining_amount': remaining_amount,  # Include any remaining amount in response
+                'note': note  # Add note about allocation adjustment
             },
             'allocations': allocations
         }), 200
@@ -405,4 +509,112 @@ def get_risk_allocation_chart():
         logger.error(f"Error generating risk allocation chart: {e}", exc_info=True)
         return jsonify({
             'error': 'Error generating visualization'
+        }), 500 
+
+@portfolio.route('/validate-portfolio', methods=['GET'])
+def validate_portfolio():
+    """Debug endpoint to validate portfolio allocations against investment amount"""
+    try:
+        # Get token from header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"message": "No token provided"}), 401
+        
+        token = auth_header.split(' ')[1]
+        
+        try:
+            # Decode token
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            user_id = payload['user_id']
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
+            return jsonify({"message": "Invalid or expired token"}), 401
+
+        # Get user data from database
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+            
+        # Get investment amount from user data
+        investment_amount = user.get('investment_amount')
+        if not investment_amount:
+            return jsonify({"message": "No investment amount found"}), 400
+        
+        # Get user's risk profile    
+        risk_score = user.get('risk_score')
+        risk_category = user.get('risk_category')
+        
+        # Get allocation data
+        assets_data = get_risk_based_allocation(risk_score, risk_category)
+        prices = get_asset_prices()
+        
+        # Calculate allocations by category
+        category_allocations = {}
+        for category, assets in assets_data.items():
+            category_amount = 0
+            for asset in assets:
+                weight = asset['weight']
+                amount = investment_amount * weight
+                category_amount += amount
+            
+            category_allocations[category] = {
+                'initial_investment': category_amount,
+                'percentage': (category_amount / investment_amount) * 100
+            }
+        
+        # Analyze mutual funds specifically
+        mutual_funds = assets_data.get('Mutual Funds', [])
+        mf_details = []
+        
+        for mf in mutual_funds:
+            initial_investment = investment_amount * mf['weight']
+            current_price = prices[mf['ticker']]
+            quantity = round(initial_investment / current_price, 4)
+            current_value = quantity * current_price
+            
+            mf_details.append({
+                'name': mf['name'],
+                'market_price': current_price,
+                'initial_investment': initial_investment,
+                'quantity': quantity,
+                'current_value': current_value,
+                'difference': current_value - initial_investment,
+                'difference_pct': ((current_value / initial_investment) - 1) * 100 if initial_investment > 0 else 0
+            })
+        
+        # Total validation
+        total_initial_investment = sum(c['initial_investment'] for c in category_allocations.values())
+        is_valid = abs(total_initial_investment - investment_amount) < 0.01 * investment_amount
+        
+        # Calculate example asset for demo
+        example_asset = {
+            'name': 'HDFC Flexi Cap Fund',
+            'market_price': 1961,
+            'investment': 46406,
+            'calculated_quantity': round(46406 / 1961, 4),
+            'calculated_value': round(46406 / 1961, 4) * 1961
+        }
+        
+        return jsonify({
+            'investment_amount': investment_amount,
+            'risk_profile': {
+                'score': risk_score,
+                'category': risk_category
+            },
+            'category_allocations': category_allocations,
+            'mutual_fund_details': mf_details,
+            'total_initial_investment': total_initial_investment,
+            'difference': total_initial_investment - investment_amount,
+            'is_valid': is_valid,
+            'example_calculation': example_asset,
+            'notes': [
+                "Mutual fund quantities should be calculated as: initial_investment / market_price",
+                "Current value should be: quantity × current_price",
+                "Total of all initial investments should equal user's investment amount"
+            ]
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error in validate-portfolio route: {e}", exc_info=True)
+        return jsonify({
+            'error': 'Error validating portfolio allocation'
         }), 500 
