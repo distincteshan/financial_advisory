@@ -14,11 +14,26 @@ const formatPercent = (value) => {
   return `${value.toFixed(2)}%`;
 };
 
-const formatQuantity = (value) => {
-  return new Intl.NumberFormat('en-IN', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
-  }).format(value);
+const formatQuantity = (value, category) => {
+  if (category === 'Stocks') {
+    // For stocks, show as integers
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } else if (category === 'Mutual Funds') {
+    // For mutual funds, show 4 decimal places
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
+    }).format(value);
+  } else {
+    // For other assets (crypto, commodities), show up to 4 decimal places
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 4,
+    }).format(value);
+  }
 };
 
 const AssetRow = ({ asset }) => {
@@ -78,7 +93,7 @@ const AssetRow = ({ asset }) => {
         </div>
       </td>
       <td className="py-4 px-4 text-right">
-        <div className="text-white">{formatQuantity(asset.quantity)}</div>
+        <div className="text-white">{formatQuantity(asset.quantity, asset.category)}</div>
         <div className="text-gray-400 text-sm">Units</div>
       </td>
       <td className="py-4 px-4 text-right">
@@ -190,38 +205,32 @@ const Dashboard = () => {
   const fetchPortfolioData = async () => {
     try {
       setLoading(true);
-      const questionnaireData = localStorage.getItem('questionnaireResponses');
-      if (!questionnaireData) {
-        setError('No questionnaire data found. Please complete the questionnaire first.');
+      
+      // Get auth token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Not authenticated. Please login again.');
         setLoading(false);
         return;
       }
 
-      const responses = JSON.parse(questionnaireData);
-      const investmentAmount = parseFloat(responses.investmentAmount);
-      
-      if (!investmentAmount || isNaN(investmentAmount)) {
-        setError('Invalid investment amount. Please complete the questionnaire again.');
-        setLoading(false);
-        return;
-      }
-
-      const response = await axios.get(`http://localhost:5000/portfolio/get-portfolio?amount=${investmentAmount}`);
-      
-      if (response.data.portfolio_metrics.total_investment !== investmentAmount) {
-        console.error('Investment amount mismatch:', {
-          requested: investmentAmount,
-          received: response.data.portfolio_metrics.total_investment
-        });
-        setError('Portfolio allocation amount does not match your investment amount');
-        return;
-      }
+      const response = await axios.get('http://localhost:5000/portfolio/get-portfolio', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       setPortfolioData(response.data);
       setError(null);
     } catch (err) {
-      setError('Failed to fetch portfolio data. ' + err.message);
-      console.error('Error fetching portfolio data:', err);
+      if (err.response?.status === 401) {
+        setError('Session expired. Please login again.');
+      } else if (err.response?.status === 400) {
+        setError('Please complete the questionnaire first.');
+      } else {
+        setError('Failed to fetch portfolio data. ' + err.message);
+        console.error('Error fetching portfolio data:', err);
+      }
     } finally {
       setLoading(false);
     }

@@ -60,7 +60,7 @@ def get_gold_price():
 def get_mutual_fund_nav(symbol):
     # For demonstration, returning fixed NAV values
     nav_values = {
-        'HDFC_FLEXI_CAP': 100.0,
+        'HDFC_FLEXI_CAP': 1961,
         'PPFAS_FLEXI_CAP': 102.0,
     }
     return nav_values.get(symbol)

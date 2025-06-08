@@ -6,6 +6,9 @@ import logging
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
+import jwt
+from config import SECRET_KEY, users_collection
+from bson import ObjectId
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -58,9 +61,34 @@ def get_asset_prices():
 def get_portfolio():
     try:
         logger.debug("Handling /get-portfolio request...")
-        # Get investment amount from query parameter
-        investment_amount = float(request.args.get('amount', 100000))
-        logger.debug(f"Investment amount: {investment_amount}")
+        
+        # Get token from header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"message": "No token provided"}), 401
+        
+        token = auth_header.split(' ')[1]
+        
+        try:
+            # Decode token
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            user_id = payload['user_id']
+        except jwt.ExpiredSignatureError:
+            return jsonify({"message": "Token has expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"message": "Invalid token"}), 401
+
+        # Get user data from database
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+            
+        # Get investment amount from user data
+        investment_amount = user.get('investment_amount')
+        if not investment_amount:
+            return jsonify({"message": "No investment amount found. Please complete the questionnaire."}), 400
+            
+        logger.debug(f"User investment amount: {investment_amount}")
         
         # Sample historical returns and volatility data
         assets_data = {
@@ -128,6 +156,7 @@ def get_portfolio():
                     'ticker': 'HDFC_FLEXI_CAP',
                     'expected_return': 12,
                     'weight': 0.05,
+                    'nav': 50.27  # NAV for mutual fund
                 }
             ],
             'Commodities': [
@@ -145,22 +174,50 @@ def get_portfolio():
         
         # Calculate allocations and add quantity data
         allocations = []
+        remaining_amount = 0  # To track leftover amount from rounding
+
         for category, assets in assets_data.items():
             for asset in assets:
                 asset_amount = investment_amount * asset['weight']
                 current_price = prices[asset['ticker']]
-                quantity = asset_amount / current_price
+                
+                # Calculate quantity based on asset type
+                if category == 'Stocks':
+                    # For stocks, round down to nearest integer
+                    quantity = int(asset_amount / current_price)
+                    actual_amount = quantity * current_price
+                    remaining_amount += asset_amount - actual_amount
+                elif category == 'Mutual Funds':
+                    # For mutual funds, use 4 decimal places
+                    quantity = round(asset_amount / asset['nav'], 4)
+                    actual_amount = quantity * asset['nav']
+                else:
+                    # For other assets (crypto, commodities), use normal division
+                    quantity = asset_amount / current_price
+                    actual_amount = asset_amount
                 
                 allocations.append({
                     'name': asset['name'],
                     'ticker': asset['ticker'],
                     'category': category,
                     'expected_return': asset['expected_return'],
-                    'amount': asset_amount,
+                    'amount': actual_amount,
                     'quantity': quantity,
-                    'initial_investment': asset_amount,
-                    'weight': asset['weight']
+                    'initial_investment': actual_amount,
+                    'weight': asset['weight'],
+                    'current_price': current_price
                 })
+
+        # If there's remaining amount from stock rounding, redistribute to mutual funds
+        if remaining_amount > 0 and any(a['category'] == 'Mutual Funds' for a in allocations):
+            for allocation in allocations:
+                if allocation['category'] == 'Mutual Funds':
+                    additional_units = round(remaining_amount / allocation['current_price'], 4)
+                    allocation['quantity'] += additional_units
+                    allocation['amount'] += remaining_amount
+                    allocation['initial_investment'] += remaining_amount
+                    remaining_amount = 0
+                    break
 
         # Calculate portfolio metrics
         weights = np.array([asset['weight'] for asset in allocations])
@@ -202,6 +259,7 @@ def get_portfolio():
             try:
                 allocation['weight'] = float(allocation['weight'])
                 allocation['amount'] = float(allocation['amount'])
+                allocation['quantity'] = float(allocation['quantity'])
             except (ValueError, TypeError) as e:
                 logger.error(f"Invalid numerical values in allocation: {allocation}")
                 return jsonify({
@@ -214,7 +272,8 @@ def get_portfolio():
                 'total_investment': investment_amount,
                 'expected_return': portfolio_return * 100,
                 'volatility': portfolio_volatility * 100,
-                'sharpe_ratio': sharpe_ratio
+                'sharpe_ratio': sharpe_ratio,
+                'remaining_amount': remaining_amount  # Include any remaining amount in response
             },
             'allocations': allocations
         }), 200
