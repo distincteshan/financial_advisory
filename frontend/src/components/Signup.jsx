@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signup } from "../services/authService";
+import { useAuth } from "../context/AuthContext";
 import Navbar from "./NavBar";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -13,7 +15,7 @@ const Signup = () => {
   });
 
   const [error, setError] = useState("");
-  // const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,13 +24,12 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // setLoading(true);
+    setLoading(true);
     setError("");
     try {
       const res = await signup(formData);
-      // Store token and user ID from response
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user_id", res.data.user_id);
+      // Update auth context
+      authLogin(res.data);
 
       // Redirect directly to questionnaire
       navigate("/questionnaire");
@@ -38,7 +39,7 @@ const Signup = () => {
         err.response?.data?.message || "Error signing up. Please try again."
       );
     } finally {
-      // setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -59,6 +60,7 @@ const Signup = () => {
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading}
             />
             <input
               type="text"
@@ -67,6 +69,7 @@ const Signup = () => {
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading}
             />
             <input
               type="text"
@@ -75,6 +78,7 @@ const Signup = () => {
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading}
             />
             <input
               type="password"
@@ -83,12 +87,16 @@ const Signup = () => {
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading}
             />
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-300"
+              disabled={loading}
+              className={`w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-300 ${
+                loading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
-              Sign Up
+              {loading ? "Signing up..." : "Sign Up"}
             </button>
           </form>
         </div>

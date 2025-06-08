@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PortfolioCharts from './PortfolioCharts';
+import Navbar from './NavBar';
 
 const formatINR = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -238,10 +239,13 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Optimizing your portfolio...</p>
+      <div className="min-h-screen bg-gray-900">
+        <Navbar />
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Optimizing your portfolio...</p>
+          </div>
         </div>
       </div>
     );
@@ -249,10 +253,13 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="bg-red-900/50 p-6 rounded-lg text-red-200 max-w-md text-center">
-          <div className="text-xl font-bold mb-2">Error</div>
-          <div>{error}</div>
+      <div className="min-h-screen bg-gray-900">
+        <Navbar />
+        <div className="flex items-center justify-center h-screen">
+          <div className="bg-red-900/50 p-6 rounded-lg text-red-200 max-w-md text-center">
+            <div className="text-xl font-bold mb-2">Error</div>
+            <div>{error}</div>
+          </div>
         </div>
       </div>
     );
@@ -269,20 +276,25 @@ const Dashboard = () => {
   }, {});
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8">
-      {/* Portfolio Charts */}
-      <PortfolioCharts portfolioData={portfolioData} />
+    <div className="min-h-screen bg-gray-900">
+      <Navbar />
+      <div className="pt-16 px-4 sm:px-6 lg:px-8">
+        {/* Portfolio Charts */}
+        <div className="mt-8">
+          <PortfolioCharts portfolioData={portfolioData} />
+        </div>
 
-      {/* Category Cards */}
-      <div className="mt-8 space-y-8">
-        {Object.entries(groupedAllocations).map(([category, allocations]) => (
-          <CategoryCard
-            key={category}
-            title={category}
-            allocations={allocations}
-            totalAmount={portfolioData.portfolio_metrics.total_investment}
-          />
-        ))}
+        {/* Category Cards */}
+        <div className="mt-8 space-y-8 pb-8">
+          {Object.entries(groupedAllocations).map(([category, allocations]) => (
+            <CategoryCard
+              key={category}
+              title={category}
+              allocations={allocations}
+              totalAmount={portfolioData.portfolio_metrics.total_investment}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

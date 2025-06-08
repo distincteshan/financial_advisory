@@ -2,10 +2,12 @@
 import { useState } from "react";
 import { login } from "../services/authService";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Navbar from "./NavBar";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -27,9 +29,8 @@ const Login = () => {
     try {
       const response = await login(formData);
 
-      // Store the token and user info in localStorage
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user_id", response.data.user_id);
+      // Update auth context
+      authLogin(response.data);
 
       // Redirect based on questionnaire completion status
       if (response.data.has_completed_questionnaire) {
@@ -37,9 +38,6 @@ const Login = () => {
       } else {
         navigate("/questionnaire");
       }
-
-      // Show success message
-      alert(response.data.message);
     } catch (err) {
       console.error("Login error details:", err);
       setError(err.response?.data?.message || "An error occurred during login");
