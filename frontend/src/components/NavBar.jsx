@@ -56,6 +56,14 @@ const Navbar = () => {
       >
         Calculators
       </Link>
+      <Link
+        to="/news"
+        className={`${
+          isActive('/news') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        } px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}
+      >
+        News
+      </Link>
       <button
         onClick={handleLogout}
         className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
@@ -98,6 +106,14 @@ const Navbar = () => {
         } px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}
       >
         Calculators
+      </Link>
+      <Link
+        to="/news"
+        className={`${
+          isActive('/news') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        } px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}
+      >
+        News
       </Link>
       <Link
         to="/login"
@@ -200,6 +216,14 @@ const Navbar = () => {
                 >
                   Calculators
                 </Link>
+                <Link
+                  to="/news"
+                  className={`${
+                    isActive('/news') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  } block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`}
+                >
+                  News
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="text-gray-300 hover:bg-gray-700 hover:text-white block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
@@ -240,6 +264,14 @@ const Navbar = () => {
                   } block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`}
                 >
                   Calculators
+                </Link>
+                <Link
+                  to="/news"
+                  className={`${
+                    isActive('/news') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  } block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`}
+                >
+                  News
                 </Link>
                 <Link
                   to="/login"

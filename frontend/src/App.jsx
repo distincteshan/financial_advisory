@@ -9,6 +9,7 @@ import Questionnaire from './components/Questionnaire';
 import PrivateRoute from './components/PrivateRoute';
 import AboutUs from './components/AboutUs';
 import Calculators from './components/Calculators';
+import News from './components/News';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/features" element={<Features />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/calculators" element={<Calculators />} />
+          <Route path="/news" element={<News />} />
           <Route
             path="/dashboard"
             element={
