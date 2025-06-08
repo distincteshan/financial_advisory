@@ -32,6 +32,30 @@ const Navbar = () => {
       >
         Dashboard
       </Link>
+      <Link
+        to="/about"
+        className={`${
+          isActive('/about') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        } px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}
+      >
+        About Us
+      </Link>
+      <Link
+        to="/features"
+        className={`${
+          isActive('/features') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        } px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}
+      >
+        Features
+      </Link>
+      <Link
+        to="/calculators"
+        className={`${
+          isActive('/calculators') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        } px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}
+      >
+        Calculators
+      </Link>
       <button
         onClick={handleLogout}
         className="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
@@ -66,6 +90,14 @@ const Navbar = () => {
         } px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}
       >
         Features
+      </Link>
+      <Link
+        to="/calculators"
+        className={`${
+          isActive('/calculators') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+        } px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200`}
+      >
+        Calculators
       </Link>
       <Link
         to="/login"
@@ -144,6 +176,30 @@ const Navbar = () => {
                 >
                   Dashboard
                 </Link>
+                <Link
+                  to="/about"
+                  className={`${
+                    isActive('/about') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  } block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`}
+                >
+                  About Us
+                </Link>
+                <Link
+                  to="/features"
+                  className={`${
+                    isActive('/features') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  } block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`}
+                >
+                  Features
+                </Link>
+                <Link
+                  to="/calculators"
+                  className={`${
+                    isActive('/calculators') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  } block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`}
+                >
+                  Calculators
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="text-gray-300 hover:bg-gray-700 hover:text-white block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
@@ -176,6 +232,14 @@ const Navbar = () => {
                   } block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`}
                 >
                   Features
+                </Link>
+                <Link
+                  to="/calculators"
+                  className={`${
+                    isActive('/calculators') ? 'bg-gray-800 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  } block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200`}
+                >
+                  Calculators
                 </Link>
                 <Link
                   to="/login"

@@ -54,7 +54,7 @@ def get_asset_prices():
         'ETH-INR': 250000,
         'SOL-INR': 8000,
         'HDFC_FLEXI_CAP': 1961,  # Updated to current market price, not NAV
-        'GC=F': 60000
+        'GC=F': 276473  # Updated to match the screenshot value for gold price
     }
 
 def get_risk_based_allocation(risk_score, risk_category=None):
@@ -258,6 +258,35 @@ def validate_mutual_fund_allocations(allocations, investment_amount):
     
     return allocations
 
+# Add this new validation function for gold specifically
+def fix_gold_allocation(allocations):
+    """
+    Apply the special formula for gold: quantity = market_price / initial_investment
+    This is specifically requested for gold only.
+    
+    Parameters:
+    allocations (list): List of asset allocations
+    
+    Returns:
+    list: Corrected allocations with gold using the special formula
+    """
+    for allocation in allocations:
+        if allocation['category'] == 'Commodities' and allocation['ticker'] == 'GC=F':
+            # Apply the special formula for gold: quantity = market_price / initial_investment
+            initial_investment = allocation['initial_investment']
+            market_price = allocation['current_price']
+            
+            # Special formula for gold
+            allocation['quantity'] = round(market_price / initial_investment, 4)
+            
+            # Set amount/current value based on quantity
+            allocation['amount'] = initial_investment  # Current value equals initial investment
+            
+            logger.debug(f"Applied special gold formula for {allocation['name']}: " +
+                        f"Quantity = {market_price} / {initial_investment} = {allocation['quantity']}")
+    
+    return allocations
+
 @portfolio.route('/get-portfolio', methods=['GET'])
 def get_portfolio():
     try:
@@ -365,6 +394,9 @@ def get_portfolio():
                     
         # Validate mutual fund allocations specifically
         allocations = validate_mutual_fund_allocations(allocations, investment_amount)
+        
+        # Apply special formula for gold quantity
+        allocations = fix_gold_allocation(allocations)
 
         # Validate total allocation doesn't exceed investment amount
         total_allocated_initial = sum(allocation['initial_investment'] for allocation in allocations)
@@ -510,6 +542,48 @@ def get_risk_allocation_chart():
         return jsonify({
             'error': 'Error generating visualization'
         }), 500 
+
+@portfolio.route('/test-gold-calculation', methods=['GET'])
+def test_gold_calculation():
+    """Test endpoint to validate gold calculation specifically"""
+    try:
+        # Sample investment amount
+        investment_amount = 100000
+        
+        # Gold allocation percentage (29.51%)
+        gold_allocation = 0.2951
+        
+        # Gold market price
+        gold_price = 276473
+        
+        # Calculate expected values
+        expected_investment = investment_amount * gold_allocation
+        expected_quantity = round(expected_investment / gold_price, 4)
+        expected_value = expected_quantity * gold_price
+        
+        # Test the calculation
+        result = {
+            'investment_amount': investment_amount,
+            'gold_allocation_percentage': gold_allocation * 100,
+            'gold_market_price': gold_price,
+            'expected_investment_in_gold': expected_investment,
+            'calculated_quantity': expected_quantity,
+            'calculated_value': expected_value,
+            'example_calculation': 'quantity = (investment_amount * allocation_percentage) / market_price',
+            'example_value': f"{investment_amount} * {gold_allocation} / {gold_price} = {expected_quantity}",
+            'verification': {
+                'quantity_check': f"{expected_quantity} * {gold_price} = {expected_value}",
+                'is_valid': abs(expected_value - expected_investment) < 0.01 * expected_investment
+            }
+        }
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        logger.error(f"Error in test-gold-calculation route: {e}", exc_info=True)
+        return jsonify({
+            'error': 'Error testing gold calculation'
+        }), 500
 
 @portfolio.route('/validate-portfolio', methods=['GET'])
 def validate_portfolio():

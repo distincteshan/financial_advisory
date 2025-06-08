@@ -13,7 +13,6 @@ const TeamMember = ({ name, role, description, image }) => (
       </div>
       <h3 className="text-xl font-bold text-white mb-2 group-hover:text-indigo-400 transition-colors duration-300">{name}</h3>
       <p className="text-indigo-400 mb-3">{role}</p>
-      <p className="text-gray-400">{description}</p>
     </div>
   </div>
 );
@@ -21,24 +20,20 @@ const TeamMember = ({ name, role, description, image }) => (
 const AboutUs = () => {
   const teamMembers = [
     {
-      name: "Dr. Sarah Chen",
-      role: "Chief Investment Strategist",
-      description: "PhD in Financial Mathematics with 15 years of experience in quantitative portfolio management.",
+      name: "Eshan Deosatwar",
+      role: "AI&DS",
     },
     {
-      name: "Alex Kumar",
-      role: "AI Research Lead",
-      description: "Specialist in machine learning applications in financial markets and risk assessment.",
+      name: "Kaushik Khare",
+      role: "AI&DS",
     },
     {
-      name: "Michael Zhang",
-      role: "Portfolio Optimization Expert",
-      description: "Expert in modern portfolio theory and algorithmic trading strategies.",
+      name: "Sahil Rodge",
+      role: "AI&DS",
     },
     {
-      name: "Dr. Lisa Patel",
-      role: "Risk Management Director",
-      description: "Specialized in developing robust risk management frameworks for investment portfolios.",
+      name: "Yash Bankar",
+      role: "AI&DS",
     }
   ];
 

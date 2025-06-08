@@ -79,7 +79,8 @@ const AssetRow = ({ asset }) => {
     fetchMarketData();
   }, [asset.ticker]);
 
-  const currentValue = marketData.currentPrice ? marketData.currentPrice * asset.quantity : null;
+  // Calculate initial investment as quantity * market price
+  const calculatedInvestment = marketData.currentPrice ? marketData.currentPrice * asset.quantity : null;
   const isPositive = asset.expected_return >= 0;
 
   return (
@@ -105,7 +106,7 @@ const AssetRow = ({ asset }) => {
         ) : (
           <div>
             <div className="text-white">{formatINR(marketData.currentPrice)}</div>
-            <div className="text-gray-400 text-sm">Current Price</div>
+            <div className="text-gray-400 text-sm">Market Price</div>
           </div>
         )}
       </td>
@@ -116,14 +117,10 @@ const AssetRow = ({ asset }) => {
           <div className="text-red-400 text-sm">{marketData.error}</div>
         ) : (
           <div>
-            <div className="text-white">{formatINR(currentValue)}</div>
-            <div className="text-gray-400 text-sm">Current Value</div>
+            <div className="text-white">{formatINR(calculatedInvestment)}</div>
+            <div className="text-gray-400 text-sm">Initial Investment</div>
           </div>
         )}
-      </td>
-      <td className="py-4 px-4 text-right">
-        <div className="text-white">{formatINR(asset.initial_investment)}</div>
-        <div className="text-gray-400 text-sm">Initial Investment</div>
       </td>
       <td className="py-4 px-4 text-right">
         {marketData.loading ? (
@@ -177,7 +174,6 @@ const CategoryCard = ({ title, allocations, totalAmount }) => {
               <th className="py-3 px-4 text-left">Asset</th>
               <th className="py-3 px-4 text-right">Quantity</th>
               <th className="py-3 px-4 text-right">Market Price</th>
-              <th className="py-3 px-4 text-right">Current Value</th>
               <th className="py-3 px-4 text-right">Initial Investment</th>
               <th className="py-3 px-4 text-right">Expected Price</th>
               <th className="py-3 px-4 text-right">Expected Return</th>

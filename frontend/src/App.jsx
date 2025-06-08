@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard';
 import Questionnaire from './components/Questionnaire';
 import PrivateRoute from './components/PrivateRoute';
 import AboutUs from './components/AboutUs';
+import Calculators from './components/Calculators';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/features" element={<Features />} />
           <Route path="/about" element={<AboutUs />} />
+          <Route path="/calculators" element={<Calculators />} />
           <Route
             path="/dashboard"
             element={
