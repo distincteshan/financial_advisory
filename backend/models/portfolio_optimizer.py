@@ -41,7 +41,7 @@ class EnhancedPortfolioOptimizer:
         self.volatility = None
         self.covariance = None
 
-    def get_optimized_portfolio(self, investment_amount):
+    def get_optimized_portfolio(self, investment_amount, risk_score=None, risk_category=None):
         try:
             print("Starting portfolio optimization...")
             end_date = datetime.now()
@@ -54,7 +54,7 @@ class EnhancedPortfolioOptimizer:
             self.calculate_metrics()
             
             # Calculate optimal allocation based on risk-return profile
-            allocation = self.optimize_portfolio(investment_amount)
+            allocation = self.optimize_portfolio(investment_amount, risk_score, risk_category)
             
             # Format the results with proper validation
             result = {
@@ -161,9 +161,13 @@ class EnhancedPortfolioOptimizer:
         sharpe = (portfolio_return - self.risk_free_rate) / portfolio_std
         return -sharpe  # Negative because we want to maximize Sharpe ratio
 
-    def optimize_portfolio(self, investment_amount):
+    def optimize_portfolio(self, investment_amount, risk_score=None, risk_category=None):
         """Optimize portfolio using Sharpe ratio and risk constraints"""
         allocation = {}
+        
+        # Calculate risk factor (0-1) based on user risk profile
+        risk_factor = self.calculate_risk_factor(risk_score, risk_category)
+        print(f"Using risk factor: {risk_factor} for portfolio optimization")
         
         for category, assets in self.assets.items():
             allocation[category] = {}
@@ -182,12 +186,8 @@ class EnhancedPortfolioOptimizer:
                 {'type': 'eq', 'fun': lambda x: np.sum(x) - 1}  # Weights sum to 1
             ]
             
-            # Add minimum and maximum weight constraints
-            bounds = []
-            for ticker in category_tickers:
-                min_weight = assets[ticker]['min'] / 100
-                max_weight = assets[ticker]['max'] / 100
-                bounds.append((min_weight, max_weight))
+            # Apply risk-based constraints for each asset category
+            bounds = self.get_risk_adjusted_bounds(category, assets, risk_factor)
             
             # Initial guess: equal weights
             initial_weights = np.array([1/n_assets] * n_assets)
@@ -204,7 +204,7 @@ class EnhancedPortfolioOptimizer:
             
             if result.success:
                 optimized_weights = result.x
-                category_amount = investment_amount * (self.get_category_weight(category) / 100)
+                category_amount = investment_amount * (self.get_category_weight(category, risk_factor) / 100)
                 
                 # Store results
                 for i, ticker in enumerate(category_tickers):
@@ -220,7 +220,7 @@ class EnhancedPortfolioOptimizer:
             else:
                 print(f"Optimization failed for category {category}")
                 # Fallback to minimum weights if optimization fails
-                category_amount = investment_amount * (self.get_category_weight(category) / 100)
+                category_amount = investment_amount * (self.get_category_weight(category, risk_factor) / 100)
                 total_min_weight = sum(assets[t]['min'] for t in category_tickers)
                 
                 for ticker in category_tickers:
@@ -239,15 +239,114 @@ class EnhancedPortfolioOptimizer:
         
         return allocation
 
-    def get_category_weight(self, category):
-        """Get the target weight for each asset category"""
-        category_weights = {
-            'STOCKS': 50,  # 50% in stocks
-            'CRYPTO': 10,  # 10% in crypto
-            'COMMODITIES': 20,  # 20% in gold
-            'MUTUAL_FUNDS': 20   # 20% in mutual funds
+    def calculate_risk_factor(self, risk_score, risk_category):
+        """Calculate a risk factor (0-1) based on user's risk profile"""
+        # Default to using risk_score if available
+        if risk_score is not None:
+            # Convert risk score to a scale of 0-1
+            risk_factor = risk_score / 10
+        # Fall back to risk_category if risk_score isn't available
+        elif risk_category:
+            risk_categories = {
+                'conservative': 0.2,
+                'moderate': 0.5,
+                'balanced': 0.5,
+                'growth': 0.7,
+                'aggressive': 0.9
+            }
+            risk_factor = risk_categories.get(risk_category.lower(), 0.5)
+        else:
+            # Default to moderate risk if neither is provided
+            risk_factor = 0.5
+            
+        return risk_factor
+        
+    def get_risk_adjusted_bounds(self, category, assets, risk_factor):
+        """Get risk-adjusted bounds for each asset based on category and risk factor"""
+        bounds = []
+        
+        # Adjust bounds based on risk factor and category
+        for ticker, constraints in assets.items():
+            base_min = constraints['min'] / 100
+            base_max = constraints['max'] / 100
+            
+            # Apply risk-based adjustments to asset bounds
+            if category == 'CRYPTO':
+                # For conservative investors (low risk_factor), reduce crypto exposure
+                if risk_factor < 0.3:  # Very conservative
+                    min_weight = 0.0
+                    max_weight = base_max * 0.3
+                elif risk_factor < 0.5:  # Conservative
+                    min_weight = base_min * 0.5
+                    max_weight = base_max * 0.5
+                else:  # Moderate to aggressive
+                    min_weight = base_min
+                    max_weight = base_max * (1 + risk_factor * 0.5)  # Increase max for aggressive
+                    
+            elif category == 'MUTUAL_FUNDS':
+                # Higher allocation for conservative investors
+                if risk_factor < 0.3:  # Very conservative
+                    min_weight = base_min * 2
+                    max_weight = base_max * 1.5
+                elif risk_factor < 0.7:  # Conservative to moderate
+                    min_weight = base_min * 1.5
+                    max_weight = base_max * 1.2
+                else:  # Aggressive
+                    min_weight = base_min * 0.8
+                    max_weight = base_max
+                    
+            elif category == 'STOCKS':
+                # Balanced approach for stocks
+                if risk_factor < 0.3:  # Conservative
+                    min_weight = base_min * 0.8
+                    max_weight = base_max * 0.8
+                elif risk_factor < 0.7:  # Moderate
+                    min_weight = base_min
+                    max_weight = base_max
+                else:  # Aggressive
+                    min_weight = base_min * 1.2
+                    max_weight = base_max * 1.2
+                    
+            elif category == 'COMMODITIES':
+                # Higher allocation for conservative investors (for stability)
+                if risk_factor < 0.4:  # Conservative
+                    min_weight = base_min * 1.5
+                    max_weight = base_max * 1.2
+                else:  # Moderate to aggressive
+                    min_weight = base_min
+                    max_weight = base_max
+            else:
+                # Default case
+                min_weight = base_min
+                max_weight = base_max
+                
+            # Ensure bounds are within 0-1
+            min_weight = max(0.0, min(0.9, min_weight))
+            max_weight = max(min_weight + 0.01, min(1.0, max_weight))
+            
+            bounds.append((min_weight, max_weight))
+            
+        return bounds
+
+    def get_category_weight(self, category, risk_factor=0.5):
+        """Get the target weight for each asset category based on risk factor"""
+        # Define allocation ranges for each asset class based on risk
+        # Format: [allocation_at_risk_0, allocation_at_risk_1]
+        allocation_ranges = {
+            'STOCKS': [30, 70],  # 30% to 70%
+            'CRYPTO': [0, 25],   # 0% to 25%
+            'COMMODITIES': [30, 10],  # 30% to 10% (decreases with risk)
+            'MUTUAL_FUNDS': [40, 15]   # 40% to 15% (decreases with risk)
         }
-        return category_weights.get(category, 0)
+        
+        # Get range for requested category
+        range_values = allocation_ranges.get(category, [0, 0])
+        min_alloc, max_alloc = range_values
+        
+        # Linear interpolation between min and max based on risk_factor
+        weight = min_alloc + (max_alloc - min_alloc) * risk_factor
+        
+        return weight
 
     def calculate_portfolio_metrics(self, allocation, investment_amount):
         """Calculate overall portfolio metrics"""
