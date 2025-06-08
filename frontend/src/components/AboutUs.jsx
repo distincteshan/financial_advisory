@@ -38,12 +38,29 @@ const AboutUs = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-black">
-      {/* Gradient Background */}
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Complex Gradient Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black -z-10"></div>
       
-      {/* Animated Dots */}
+      {/* Animated Gradient Orbs */}
+      <div className="fixed top-20 left-20 w-96 h-96 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-full blur-3xl animate-pulse -z-10"></div>
+      <div className="fixed top-40 right-32 w-80 h-80 bg-gradient-to-r from-purple-500/15 to-pink-500/15 rounded-full blur-3xl animate-pulse delay-1000 -z-10"></div>
+      <div className="fixed bottom-32 left-1/3 w-72 h-72 bg-gradient-to-r from-pink-500/10 to-indigo-500/10 rounded-full blur-3xl animate-pulse delay-2000 -z-10"></div>
+      <div className="fixed bottom-20 right-20 w-64 h-64 bg-gradient-to-r from-cyan-500/15 to-blue-500/15 rounded-full blur-3xl animate-pulse delay-500 -z-10"></div>
+      
+      {/* Animated Mesh Gradient */}
+      <div className="fixed inset-0 opacity-30 -z-10">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-indigo-500/5 to-transparent animate-pulse"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-purple-500/5 to-transparent animate-pulse delay-1000"></div>
+      </div>
+      
+      {/* Enhanced Dot Pattern */}
       <div className="fixed inset-0 bg-[radial-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:50px_50px] -z-10"></div>
+      <div className="fixed inset-0 bg-[radial-gradient(rgba(139,92,246,0.1)_1px,transparent_1px)] bg-[size:80px_80px] animate-pulse -z-10"></div>
+      
+      {/* Floating Gradient Lines */}
+      <div className="fixed top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent -z-10"></div>
+      <div className="fixed top-3/4 right-0 w-full h-px bg-gradient-to-l from-transparent via-purple-500/20 to-transparent -z-10"></div>
 
       <Navbar />
       

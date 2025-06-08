@@ -84,63 +84,63 @@ const AssetRow = ({ asset }) => {
   const isPositive = asset.expected_return >= 0;
 
   return (
-    <tr className="border-b border-gray-800">
+    <tr className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors duration-200">
       <td className="py-4 px-4">
         <div className="flex items-center space-x-3">
-          <div className={`w-2 h-8 rounded-full ${isPositive ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <div className={`w-2 h-8 rounded-full ${isPositive ? 'bg-green-500' : 'bg-gray-600'}`}></div>
           <div>
-            <div className="text-white font-medium">{asset.name}</div>
-            <div className="text-gray-400 text-sm">{asset.ticker}</div>
+            <div className="text-gray-100 font-medium">{asset.name}</div>
+            <div className="text-gray-500 text-sm">{asset.ticker}</div>
           </div>
         </div>
       </td>
       <td className="py-4 px-4 text-right">
-        <div className="text-white">{formatQuantity(asset.quantity, asset.category)}</div>
-        <div className="text-gray-400 text-sm">Units</div>
+        <div className="text-gray-200">{formatQuantity(asset.quantity, asset.category)}</div>
+        <div className="text-gray-500 text-sm">Units</div>
       </td>
       <td className="py-4 px-4 text-right">
         {marketData.loading ? (
-          <div className="text-gray-400">Loading...</div>
+          <div className="text-gray-500">Loading...</div>
         ) : marketData.error ? (
-          <div className="text-red-400 text-sm">{marketData.error}</div>
+          <div className="text-gray-600 text-sm">{marketData.error}</div>
         ) : (
           <div>
-            <div className="text-white">{formatINR(marketData.currentPrice)}</div>
-            <div className="text-gray-400 text-sm">Market Price</div>
+            <div className="text-gray-200">{formatINR(marketData.currentPrice)}</div>
+            <div className="text-gray-500 text-sm">Market Price</div>
           </div>
         )}
       </td>
       <td className="py-4 px-4 text-right">
         {marketData.loading ? (
-          <div className="text-gray-400">Loading...</div>
+          <div className="text-gray-500">Loading...</div>
         ) : marketData.error ? (
-          <div className="text-red-400 text-sm">{marketData.error}</div>
+          <div className="text-gray-600 text-sm">{marketData.error}</div>
         ) : (
           <div>
-            <div className="text-white">{formatINR(calculatedInvestment)}</div>
-            <div className="text-gray-400 text-sm">Initial Investment</div>
+            <div className="text-gray-200">{formatINR(calculatedInvestment)}</div>
+            <div className="text-gray-500 text-sm">Initial Investment</div>
           </div>
         )}
       </td>
       <td className="py-4 px-4 text-right">
         {marketData.loading ? (
-          <div className="text-gray-400">Loading...</div>
+          <div className="text-gray-500">Loading...</div>
         ) : marketData.error ? (
-          <div className="text-red-400 text-sm">{marketData.error}</div>
+          <div className="text-gray-600 text-sm">{marketData.error}</div>
         ) : (
           <div>
-            <div className={`font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+            <div className={`font-medium ${isPositive ? 'text-green-400' : 'text-gray-400'}`}>
               {formatINR(marketData.expectedPrice)}
             </div>
-            <div className="text-gray-400 text-sm">Expected in 1Y</div>
+            <div className="text-gray-500 text-sm">Expected in 1Y</div>
           </div>
         )}
       </td>
       <td className="py-4 px-4 text-right">
-        <div className={`text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-          {isPositive ? '↑' : '↓'} {formatPercent(Math.abs(asset.expected_return))}
+        <div className={`text-sm font-medium ${isPositive ? 'text-green-400' : 'text-gray-400'}`}>
+          {isPositive ? '↗' : '↘'} {formatPercent(Math.abs(asset.expected_return))}
         </div>
-        <div className="text-gray-400 text-sm">Expected Return</div>
+        <div className="text-gray-500 text-sm">Expected Return</div>
       </td>
     </tr>
   );
@@ -154,29 +154,32 @@ const CategoryCard = ({ title, allocations, totalAmount }) => {
   }, 0);
 
   return (
-    <div className="bg-gray-900 rounded-xl shadow-lg p-6 hover:shadow-2xl transition-all border border-gray-800">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-gray-900/60 backdrop-blur-sm rounded-xl shadow-lg p-6 hover:shadow-2xl transition-all border border-gray-700/50 hover:border-gray-600/50 group relative overflow-hidden">
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-600/5 via-transparent to-gray-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"></div>
+      
+      <div className="flex justify-between items-center mb-6 relative z-10">
         <div>
-          <h3 className="text-xl font-bold text-white mb-1">{title}</h3>
-          <span className="text-gray-400 text-sm">{formatPercent(categoryWeight)} of portfolio</span>
+          <h3 className="text-xl font-bold text-gray-100 mb-1">{title}</h3>
+          <span className="text-gray-500 text-sm">{formatPercent(categoryWeight)} of portfolio</span>
         </div>
         <div className="text-right">
-          <div className="text-white font-bold">{formatINR(categoryTotal)}</div>
-          <div className={`text-sm ${weightedReturn >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {weightedReturn >= 0 ? '↑' : '↓'} {formatPercent(Math.abs(weightedReturn))}
+          <div className="text-gray-200 font-bold">{formatINR(categoryTotal)}</div>
+          <div className={`text-sm font-medium ${weightedReturn >= 0 ? 'text-green-400' : 'text-gray-400'}`}>
+            {weightedReturn >= 0 ? '↗' : '↘'} {formatPercent(Math.abs(weightedReturn))}
           </div>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto relative z-10">
         <table className="min-w-full">
           <thead>
-            <tr className="text-gray-400 text-sm">
-              <th className="py-3 px-4 text-left">Asset</th>
-              <th className="py-3 px-4 text-right">Quantity</th>
-              <th className="py-3 px-4 text-right">Market Price</th>
-              <th className="py-3 px-4 text-right">Initial Investment</th>
-              <th className="py-3 px-4 text-right">Expected Price</th>
-              <th className="py-3 px-4 text-right">Expected Return</th>
+            <tr className="text-gray-500 text-sm border-b border-gray-700/30">
+              <th className="py-3 px-4 text-left font-medium">Asset</th>
+              <th className="py-3 px-4 text-right font-medium">Quantity</th>
+              <th className="py-3 px-4 text-right font-medium">Market Price</th>
+              <th className="py-3 px-4 text-right font-medium">Initial Investment</th>
+              <th className="py-3 px-4 text-right font-medium">Expected Price</th>
+              <th className="py-3 px-4 text-right font-medium">Expected Return</th>
             </tr>
           </thead>
           <tbody>
@@ -235,12 +238,29 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900">
+      <div className="min-h-screen bg-black relative overflow-hidden">
+        {/* Complex Gradient Background */}
+        <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black -z-10"></div>
+        
+        {/* Dynamic Gradient Orbs */}
+        <div className="fixed top-20 right-20 w-[450px] h-[450px] bg-gradient-to-r from-blue-500/15 to-indigo-500/15 rounded-full blur-3xl animate-pulse -z-10"></div>
+        <div className="fixed top-1/2 left-16 w-96 h-96 bg-gradient-to-r from-purple-500/12 to-pink-500/12 rounded-full blur-3xl animate-pulse delay-1000 -z-10"></div>
+        <div className="fixed bottom-20 left-1/2 w-80 h-80 bg-gradient-to-r from-green-500/10 to-teal-500/10 rounded-full blur-3xl animate-pulse delay-1500 -z-10"></div>
+        <div className="fixed top-1/3 right-1/3 w-72 h-72 bg-gradient-to-r from-indigo-500/8 to-cyan-500/8 rounded-full blur-3xl animate-pulse delay-700 -z-10"></div>
+        
+        {/* Enhanced Geometric Patterns */}
+        <div className="fixed inset-0 bg-[radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:60px_60px] -z-10"></div>
+        <div className="fixed inset-0 bg-[radial-gradient(rgba(99,102,241,0.06)_1px,transparent_1px)] bg-[size:90px_90px] animate-pulse -z-10"></div>
+
         <Navbar />
-        <div className="flex items-center justify-center h-screen">
+        <div className="flex items-center justify-center h-screen relative z-10">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">Optimizing your portfolio...</p>
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+              <div className="absolute inset-0 animate-ping rounded-full h-16 w-16 border border-indigo-400/20 mx-auto"></div>
+            </div>
+            <p className="text-gray-300 text-lg">Optimizing your portfolio...</p>
+            <p className="text-gray-500 text-sm mt-2">Analyzing market data and calculating optimal allocations</p>
           </div>
         </div>
       </div>
@@ -249,12 +269,30 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900">
+      <div className="min-h-screen bg-black relative overflow-hidden">
+        {/* Complex Gradient Background */}
+        <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black -z-10"></div>
+        
+        {/* Dynamic Gradient Orbs */}
+        <div className="fixed top-20 right-20 w-[450px] h-[450px] bg-gradient-to-r from-red-500/15 to-pink-500/15 rounded-full blur-3xl animate-pulse -z-10"></div>
+        <div className="fixed top-1/2 left-16 w-96 h-96 bg-gradient-to-r from-orange-500/12 to-red-500/12 rounded-full blur-3xl animate-pulse delay-1000 -z-10"></div>
+        <div className="fixed bottom-20 left-1/2 w-80 h-80 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-full blur-3xl animate-pulse delay-1500 -z-10"></div>
+        
+        {/* Enhanced Geometric Patterns */}
+        <div className="fixed inset-0 bg-[radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[size:60px_60px] -z-10"></div>
+        <div className="fixed inset-0 bg-[radial-gradient(rgba(239,68,68,0.06)_1px,transparent_1px)] bg-[size:90px_90px] animate-pulse -z-10"></div>
+
         <Navbar />
-        <div className="flex items-center justify-center h-screen">
-          <div className="bg-red-900/50 p-6 rounded-lg text-red-200 max-w-md text-center">
-            <div className="text-xl font-bold mb-2">Error</div>
-            <div>{error}</div>
+        <div className="flex items-center justify-center h-screen relative z-10">
+          <div className="bg-red-900/30 backdrop-blur-sm border border-red-500/30 p-8 rounded-xl text-red-200 max-w-md text-center">
+            <div className="text-2xl font-bold mb-4 text-red-400">⚠️ Error</div>
+            <div className="text-gray-300 leading-relaxed">{error}</div>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-6 bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg transition-colors duration-300"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </div>
@@ -272,9 +310,35 @@ const Dashboard = () => {
   }, {});
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Complex Gradient Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black -z-10"></div>
+      
+      {/* Dynamic Gradient Orbs */}
+      <div className="fixed top-20 right-20 w-[450px] h-[450px] bg-gradient-to-r from-gray-600/12 to-gray-500/12 rounded-full blur-3xl animate-pulse -z-10"></div>
+      <div className="fixed top-1/2 left-16 w-96 h-96 bg-gradient-to-r from-slate-600/10 to-gray-600/10 rounded-full blur-3xl animate-pulse delay-1000 -z-10"></div>
+      <div className="fixed bottom-20 left-1/2 w-80 h-80 bg-gradient-to-r from-gray-500/8 to-slate-500/8 rounded-full blur-3xl animate-pulse delay-1500 -z-10"></div>
+      <div className="fixed top-1/3 right-1/3 w-72 h-72 bg-gradient-to-r from-zinc-600/6 to-gray-600/6 rounded-full blur-3xl animate-pulse delay-700 -z-10"></div>
+      
+      {/* Animated Gradient Waves */}
+      <div className="fixed inset-0 opacity-25 -z-10">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-gray-600/3 to-transparent animate-pulse"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tl from-transparent via-slate-600/3 to-transparent animate-pulse delay-2000"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-transparent via-zinc-600/2 to-transparent animate-pulse delay-1200"></div>
+      </div>
+      
+      {/* Enhanced Geometric Patterns */}
+      <div className="fixed inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:60px_60px] -z-10"></div>
+      <div className="fixed inset-0 bg-[radial-gradient(rgba(156,163,175,0.04)_1px,transparent_1px)] bg-[size:90px_90px] animate-pulse -z-10"></div>
+      <div className="fixed inset-0 bg-[conic-gradient(from_180deg,transparent,rgba(107,114,128,0.03),transparent)] animate-pulse delay-800 -z-10"></div>
+      
+      {/* Floating Gradient Strips */}
+      <div className="fixed top-1/5 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-gray-500/20 to-transparent -z-10"></div>
+      <div className="fixed top-3/5 right-0 w-full h-px bg-gradient-to-l from-transparent via-slate-500/15 to-transparent -z-10"></div>
+      <div className="fixed bottom-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-zinc-500/12 to-transparent -z-10"></div>
+
       <Navbar />
-      <div className="pt-16 px-4 sm:px-6 lg:px-8">
+      <div className="pt-16 px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Portfolio Charts */}
         <div className="mt-8">
           <PortfolioCharts portfolioData={portfolioData} />

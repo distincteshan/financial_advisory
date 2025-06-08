@@ -13,12 +13,32 @@ const FeatureCard = ({ title, description, icon }) => (
 
 const Features = () => {
   return (
-    <div className="min-h-screen bg-black">
-      {/* Gradient Background */}
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Complex Gradient Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-900 to-black -z-10"></div>
       
-      {/* Animated Dots */}
+      {/* Dynamic Gradient Orbs */}
+      <div className="fixed top-10 right-10 w-[500px] h-[500px] bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl animate-pulse -z-10"></div>
+      <div className="fixed top-1/2 left-10 w-96 h-96 bg-gradient-to-r from-indigo-500/15 to-cyan-500/15 rounded-full blur-3xl animate-pulse delay-1500 -z-10"></div>
+      <div className="fixed bottom-10 left-1/2 w-80 h-80 bg-gradient-to-r from-pink-500/10 to-purple-500/10 rounded-full blur-3xl animate-pulse delay-700 -z-10"></div>
+      <div className="fixed top-1/3 right-1/4 w-72 h-72 bg-gradient-to-r from-cyan-500/12 to-indigo-500/12 rounded-full blur-3xl animate-pulse delay-300 -z-10"></div>
+      
+      {/* Animated Gradient Waves */}
+      <div className="fixed inset-0 opacity-40 -z-10">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-transparent via-purple-500/3 to-transparent animate-pulse"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-bl from-transparent via-indigo-500/3 to-transparent animate-pulse delay-2000"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tl from-transparent via-pink-500/3 to-transparent animate-pulse delay-1000"></div>
+      </div>
+      
+      {/* Enhanced Geometric Patterns */}
       <div className="fixed inset-0 bg-[radial-gradient(rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:50px_50px] -z-10"></div>
+      <div className="fixed inset-0 bg-[radial-gradient(rgba(168,85,247,0.08)_1px,transparent_1px)] bg-[size:70px_70px] animate-pulse -z-10"></div>
+      <div className="fixed inset-0 bg-[conic-gradient(from_0deg,transparent,rgba(139,92,246,0.05),transparent)] animate-pulse delay-500 -z-10"></div>
+      
+      {/* Floating Gradient Strips */}
+      <div className="fixed top-1/6 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-500/30 to-transparent -z-10"></div>
+      <div className="fixed top-2/3 right-0 w-full h-0.5 bg-gradient-to-l from-transparent via-indigo-500/30 to-transparent -z-10"></div>
+      <div className="fixed top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-pink-500/20 to-transparent -z-10"></div>
 
       <Navbar />
       
