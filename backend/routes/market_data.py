@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 import requests
 import yfinance as yf
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 market_data = Blueprint('market_data', __name__)
@@ -89,4 +89,46 @@ def get_current_price(symbol):
 
     except Exception as e:
         logger.error(f"Error processing request for {symbol}: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@market_data.route('/history/<symbol>')
+def get_stock_history(symbol):
+    try:
+        days = int(request.args.get('days', 90))
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        stock = yf.Ticker(symbol)
+        hist = stock.history(start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))
+        if hist.empty:
+            return jsonify({'error': 'No historical data found'}), 404
+        # Format: [{date, price}]
+        history = [
+            {'date': idx.strftime('%Y-%m-%d'), 'price': float(row['Close'])}
+            for idx, row in hist.iterrows()
+        ]
+        return jsonify({'history': history})
+    except Exception as e:
+        logger.error(f"Error fetching history for {symbol}: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@market_data.route('/stats/<symbol>')
+def get_stock_stats(symbol):
+    try:
+        stock = yf.Ticker(symbol)
+        info = stock.info
+        stats = {
+            'marketCap': info.get('marketCap'),
+            'peRatio': info.get('trailingPE'),
+            'high52': info.get('fiftyTwoWeekHigh'),
+            'low52': info.get('fiftyTwoWeekLow'),
+            'sector': info.get('sector'),
+            'industry': info.get('industry'),
+            'dividendYield': info.get('dividendYield'),
+            'beta': info.get('beta'),
+            'volume': info.get('volume'),
+            'currency': info.get('currency'),
+        }
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Error fetching stats for {symbol}: {str(e)}")
         return jsonify({'error': str(e)}), 500 

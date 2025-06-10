@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import PortfolioCharts from './PortfolioCharts';
 import Navbar from './NavBar';
+import StockDetailModal from './StockDetailModal';
 
 const formatINR = (amount) => {
   return new Intl.NumberFormat('en-IN', {
@@ -37,7 +38,7 @@ const formatQuantity = (value, category) => {
   }
 };
 
-const AssetRow = ({ asset }) => {
+const AssetRow = ({ asset, onStockClick }) => {
   const [marketData, setMarketData] = useState({
     currentPrice: null,
     expectedPrice: null,
@@ -84,7 +85,7 @@ const AssetRow = ({ asset }) => {
   const isPositive = asset.expected_return >= 0;
 
   return (
-    <tr className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors duration-200">
+    <tr className="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors duration-200" onClick={() => asset.category === 'Stocks' && onStockClick(asset)} style={{ cursor: asset.category === 'Stocks' ? 'pointer' : 'default' }}>
       <td className="py-4 px-4">
         <div className="flex items-center space-x-3">
           <div className={`w-2 h-8 rounded-full ${isPositive ? 'bg-green-500' : 'bg-gray-600'}`}></div>
@@ -146,7 +147,7 @@ const AssetRow = ({ asset }) => {
   );
 };
 
-const CategoryCard = ({ title, allocations, totalAmount }) => {
+const CategoryCard = ({ title, allocations, totalAmount, onStockClick }) => {
   const categoryTotal = allocations.reduce((sum, asset) => sum + asset.amount, 0);
   const categoryWeight = (categoryTotal / totalAmount) * 100;
   const weightedReturn = allocations.reduce((sum, asset) => {
@@ -184,7 +185,7 @@ const CategoryCard = ({ title, allocations, totalAmount }) => {
           </thead>
           <tbody>
             {allocations.map((asset) => (
-              <AssetRow key={asset.ticker} asset={asset} />
+              <AssetRow key={asset.ticker} asset={asset} onStockClick={onStockClick} />
             ))}
           </tbody>
         </table>
@@ -197,6 +198,8 @@ const Dashboard = () => {
   const [portfolioData, setPortfolioData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [stockModalOpen, setStockModalOpen] = useState(false);
+  const [selectedStock, setSelectedStock] = useState(null);
 
   useEffect(() => {
     fetchPortfolioData();
@@ -234,6 +237,11 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStockClick = (asset) => {
+    setSelectedStock(asset);
+    setStockModalOpen(true);
   };
 
   if (loading) {
@@ -352,10 +360,17 @@ const Dashboard = () => {
               title={category}
               allocations={allocations}
               totalAmount={portfolioData.portfolio_metrics.total_investment}
+              onStockClick={handleStockClick}
             />
           ))}
         </div>
       </div>
+      <StockDetailModal
+        open={stockModalOpen}
+        onClose={() => setStockModalOpen(false)}
+        ticker={selectedStock?.ticker}
+        name={selectedStock?.name}
+      />
     </div>
   );
 };
