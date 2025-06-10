@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 news = Blueprint('news', __name__)
 
 # Your NewsAPI.org API key (keep this secure in production)
-NEWS_API_KEY = '95b376f42d204ed2a78b5b116b7a5a1c'
+NEWS_API_KEY = ''
 NEWS_API_BASE_URL = 'https://newsapi.org/v2'
 
 @news.route('/global', methods=['GET'])
